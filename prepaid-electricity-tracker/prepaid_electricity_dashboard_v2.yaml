@@ -1,0 +1,241 @@
+# Updated Dashboard Cards for Prepaid Electricity Tracker v2
+# Includes Sonoff power meter readings
+# Add these cards via: Edit Dashboard → Add Card → Manual
+
+# =============================================================================
+# CARD 1: Three Gauges - Balance, Power, Days (REPLACE YOUR CURRENT TOP ROW)
+# =============================================================================
+
+type: horizontal-stack
+cards:
+  - type: gauge
+    entity: sensor.prepaid_electricity_current_balance
+    name: Balance
+    unit: kWh
+    min: 0
+    max: 500
+    severity:
+      green: 100
+      yellow: 50
+      red: 25
+    needle: true
+  - type: gauge
+    entity: sensor.prepaid_electricity_current_power
+    name: Power Now
+    unit: W
+    min: 0
+    max: 8000
+    severity:
+      green: 2000
+      yellow: 5000
+      red: 7000
+    needle: true
+  - type: gauge
+    entity: sensor.prepaid_electricity_days_remaining
+    name: Days Left
+    unit: days
+    min: 0
+    max: 60
+    severity:
+      green: 14
+      yellow: 7
+      red: 3
+    needle: true
+
+# =============================================================================
+# CARD 2: Live Power Stats (Sonoff readings)
+# =============================================================================
+
+type: entities
+title: ⚡ Live Power
+show_header_toggle: false
+entities:
+  - entity: sensor.prepaid_electricity_current_power
+    name: Power Draw
+    icon: mdi:flash
+  - entity: sensor.prepaid_electricity_voltage
+    name: Voltage
+    icon: mdi:sine-wave
+  - entity: sensor.prepaid_electricity_current_amps
+    name: Current
+    icon: mdi:current-ac
+  - type: divider
+  - entity: sensor.prepaid_electricity_active_source
+    name: Data Source
+    icon: mdi:database
+
+# =============================================================================
+# CARD 3: Quick Status Glance (Updated)
+# =============================================================================
+
+type: glance
+title: Quick Status
+show_state: true
+columns: 4
+entities:
+  - entity: sensor.prepaid_electricity_current_balance
+    name: Balance
+    icon: mdi:lightning-bolt
+  - entity: sensor.prepaid_electricity_balance_value
+    name: Value
+    icon: mdi:cash
+  - entity: sensor.prepaid_electricity_current_power
+    name: Power
+    icon: mdi:flash
+  - entity: sensor.prepaid_electricity_days_remaining
+    name: Days
+    icon: mdi:calendar-clock
+
+# =============================================================================
+# CARD 4: Top-up & Sync Section
+# =============================================================================
+
+type: entities
+title: ⚡ Top-up Electricity
+show_header_toggle: false
+entities:
+  - entity: input_number.prepaid_electricity_topup_amount
+    name: Units to Add (kWh)
+  - entity: input_button.prepaid_electricity_topup_button
+    name: Add Units to Balance
+  - type: divider
+  - entity: input_number.prepaid_electricity_sync_value
+    name: Actual Meter Reading (kWh)
+  - entity: input_button.prepaid_electricity_sync_button
+    name: Sync Balance to Meter
+  - type: divider
+  - entity: input_datetime.prepaid_electricity_last_topup
+    name: Last Top-up
+
+# =============================================================================
+# CARD 5: Usage Statistics (unchanged)
+# =============================================================================
+
+type: entities
+title: 📊 Usage Statistics
+show_header_toggle: false
+entities:
+  - entity: sensor.prepaid_electricity_today_usage
+    name: Today
+    icon: mdi:calendar-today
+  - entity: input_number.prepaid_electricity_yesterday_usage
+    name: Yesterday
+    icon: mdi:calendar-arrow-left
+  - entity: sensor.prepaid_electricity_average_daily_usage
+    name: Daily Average
+    icon: mdi:chart-line
+  - type: divider
+  - entity: sensor.prepaid_electricity_usage_since_topup
+    name: Since Last Top-up
+    icon: mdi:counter
+  - entity: sensor.prepaid_electricity_monthly_usage
+    name: This Month
+    icon: mdi:calendar-month
+
+# =============================================================================
+# CARD 6: Cost & Tariff (unchanged)
+# =============================================================================
+
+type: entities
+title: 💰 Cost & Tariff
+show_header_toggle: false
+entities:
+  - entity: sensor.prepaid_electricity_current_tariff_block
+    name: Current Block
+    icon: mdi:tag
+  - entity: sensor.prepaid_electricity_current_rate
+    name: Current Rate
+    icon: mdi:currency-zar
+  - entity: sensor.prepaid_electricity_monthly_cost
+    name: Monthly Cost
+    icon: mdi:cash-multiple
+  - type: divider
+  - entity: input_number.prepaid_tariff_block1
+    name: Block 1 Rate (0-600 kWh)
+  - entity: input_number.prepaid_tariff_block2
+    name: Block 2 Rate (>600 kWh)
+
+# =============================================================================
+# CARD 7: Settings (Updated with source selector)
+# =============================================================================
+
+type: entities
+title: ⚙️ Settings
+show_header_toggle: false
+entities:
+  - entity: input_select.prepaid_electricity_source
+    name: Grid Import Sensor
+  - entity: sensor.prepaid_electricity_active_source
+    name: Active Source
+  - type: divider
+  - entity: input_number.prepaid_electricity_low_threshold
+    name: Low Balance Alert (kWh)
+  - entity: sensor.prepaid_electricity_low_balance
+    name: Low Balance Status
+
+# =============================================================================
+# CARD 8: 24-Hour Power History
+# =============================================================================
+
+type: history-graph
+title: ⚡ Power Draw (24h)
+hours_to_show: 24
+entities:
+  - entity: sensor.prepaid_electricity_current_power
+    name: Power
+
+# =============================================================================
+# CARD 9: 7-Day Balance & Usage History
+# =============================================================================
+
+type: history-graph
+title: 📈 7-Day History
+hours_to_show: 168
+entities:
+  - entity: sensor.prepaid_electricity_current_balance
+    name: Balance
+  - entity: sensor.prepaid_electricity_today_usage
+    name: Daily Usage
+
+# =============================================================================
+# CARD 10: Detailed All-in-One Card
+# =============================================================================
+
+type: entities
+title: ⚡ Prepaid Electricity Overview
+show_header_toggle: false
+entities:
+  - type: section
+    label: Balance
+  - entity: sensor.prepaid_electricity_current_balance
+    name: Current Balance
+  - entity: sensor.prepaid_electricity_balance_value
+    name: Rand Value
+  - entity: sensor.prepaid_electricity_days_remaining
+    name: Days Remaining
+  - entity: sensor.prepaid_electricity_empty_date
+    name: Empty Date
+  - type: section
+    label: Live Power
+  - entity: sensor.prepaid_electricity_current_power
+    name: Power Now
+  - entity: sensor.prepaid_electricity_voltage
+    name: Voltage
+  - entity: sensor.prepaid_electricity_current_amps
+    name: Current
+  - type: section
+    label: Usage
+  - entity: sensor.prepaid_electricity_today_usage
+    name: Today
+  - entity: sensor.prepaid_electricity_monthly_usage
+    name: This Month
+  - entity: sensor.prepaid_electricity_average_daily_usage
+    name: Daily Average
+  - type: section
+    label: Cost
+  - entity: sensor.prepaid_electricity_current_tariff_block
+    name: Tariff Block
+  - entity: sensor.prepaid_electricity_current_rate
+    name: Rate
+  - entity: sensor.prepaid_electricity_monthly_cost
+    name: Monthly Cost
