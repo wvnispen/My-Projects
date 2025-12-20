@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Identity Mappings{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 style="color: #1a5f7a;">Identity Mappings</h2>
+    <a href="/mappings/add" class="btn">➕ Add Mapping</a>
+</div>
+
+<div class="card">
+    <form method="get" class="search-box">
+        <input type="text" name="search" placeholder="Search by user, IP, department..." value="{{ search }}">
+        <button type="submit" class="btn">Search</button>
+        {% if search %}
+        <a href="/mappings" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </form>
+    
+    <p style="color: #666; margin-bottom: 1rem;">Showing {{ mappings|length }} of {{ total }} mappings</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>IP / Subnet</th>
+                <th>User ID</th>
+                <th>User Name</th>
+                <th>Department</th>
+                <th>Location</th>
+                <th>Source</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mapping in mappings %}
+            <tr>
+                <td>
+                    {% if mapping.ip_address %}
+                        <code>{{ mapping.ip_address }}</code>
+                    {% elif mapping.subnet_cidr %}
+                        <code>{{ mapping.subnet_cidr }}</code>
+                    {% else %}
+                        <code>{{ mapping.subnet.gte }} - {{ mapping.subnet.lte }}</code>
+                    {% endif %}
+                </td>
+                <td>{{ mapping.user_id }}</td>
+                <td><strong>{{ mapping.user_name }}</strong></td>
+                <td>{{ mapping.department or '-' }}</td>
+                <td>{{ mapping.location or '-' }}</td>
+                <td>
+                    {% if mapping.source == 'sonicwall_sso' %}
+                        <span class="tag tag-sso">SSO</span>
+                    {% elif mapping.source == 'csv_import' %}
+                        <span class="tag tag-csv">CSV</span>
+                    {% else %}
+                        <span class="tag tag-manual">Manual</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="/mappings/delete/{{ mapping.id }}" style="display: inline;" onsubmit="return confirm('Delete this mapping?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                    No mappings found. <a href="/mappings/add">Add your first mapping</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}{% if search %}&search={{ search }}{% endif %}">← Previous</a>
+        {% endif %}
+        
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+                <a href="#" class="active">{{ p }}</a>
+            {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
+                <a href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}">{{ p }}</a>
+            {% elif p == 4 or p == total_pages - 3 %}
+                <span style="padding: 0.5rem;">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}{% if search %}&search={{ search }}{% endif %}">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

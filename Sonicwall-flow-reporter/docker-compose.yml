@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Elasticsearch - Data Storage
+  # ============================================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: swfr-elasticsearch
+    environment:
+      - node.name=swfr-es01
+      - cluster.name=swfr-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - "ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms2g -Xmx2g}"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+      - ./elasticsearch/ilm-policy.json:/usr/share/elasticsearch/config/ilm-policy.json:ro
+    ports:
+      - "9200:9200"
+    networks:
+      - swfr-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # Elasticsearch Setup - Initialize indices and ILM policies
+  # ============================================================================
+  elasticsearch-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: swfr-es-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - ./elasticsearch:/setup:ro
+    entrypoint: ["/bin/bash", "/setup/setup-indices.sh"]
+    networks:
+      - swfr-network
+    restart: "no"
+
+  # ============================================================================
+  # IPFIX Collector - Receives flow data from SonicWall
+  # ============================================================================
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: swfr-collector
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - IPFIX_LISTEN_IP=${IPFIX_LISTEN_IP:-0.0.0.0}
+      - IPFIX_LISTEN_PORT=${IPFIX_LISTEN_PORT:-2055}
+      - IPFIX_ALLOWED_SOURCES=${IPFIX_ALLOWED_SOURCES:-}
+      - TZ=${TZ:-UTC}
+    ports:
+      - "${IPFIX_LISTEN_PORT:-2055}:2055/udp"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - swfr-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Identity UI - User management web interface
+  # ============================================================================
+  identity-ui:
+    build:
+      context: ./identity-ui
+      dockerfile: Dockerfile
+    container_name: swfr-identity-ui
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ADMIN_USER=${IDENTITY_ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${IDENTITY_ADMIN_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - SONICWALL_SSO_ENABLED=${SONICWALL_SSO_ENABLED:-false}
+      - SONICWALL_HOST=${SONICWALL_HOST:-}
+      - SONICWALL_API_PORT=${SONICWALL_API_PORT:-443}
+      - SONICWALL_API_USER=${SONICWALL_API_USER:-}
+      - SONICWALL_API_PASSWORD=${SONICWALL_API_PASSWORD:-}
+      - SONICWALL_SSO_SYNC_INTERVAL=${SONICWALL_SSO_SYNC_INTERVAL:-300}
+      - TZ=${TZ:-UTC}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/identity-db:/app/data
+    networks:
+      - swfr-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Grafana - Visualization and Dashboards
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: swfr-grafana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - swfr-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Aggregator - Hourly/Daily roll-ups for long-term storage
+  # ============================================================================
+  aggregator:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: swfr-aggregator
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - RUN_MODE=aggregator
+      - TZ=${TZ:-UTC}
+    networks:
+      - swfr-network
+    restart: unless-stopped
+
+networks:
+  swfr-network:
+    driver: bridge
+
+volumes:
+  elasticsearch-data:
+  grafana-data:
+  identity-data:

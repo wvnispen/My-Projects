@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem; color: #1a5f7a;">Identity Management Dashboard</h2>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ stats.total_mappings }}</div>
+        <div class="label">Total Mappings</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ stats.by_source.get('manual', 0) }}</div>
+        <div class="label">Manual Entries</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ stats.by_source.get('sonicwall_sso', 0) }}</div>
+        <div class="label">SSO Synced</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ stats.by_source.get('csv_import', 0) }}</div>
+        <div class="label">CSV Imported</div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <h2>Quick Actions</h2>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+        <a href="/mappings/add" class="btn">➕ Add Mapping</a>
+        <a href="/import" class="btn btn-secondary">📁 Import CSV</a>
+        {% if sso_enabled %}
+        <button onclick="syncSSO()" class="btn btn-secondary">🔄 Sync SSO</button>
+        {% endif %}
+        <a href="/mappings" class="btn btn-secondary">📋 View All Mappings</a>
+    </div>
+</div>
+
+{% if stats.by_department %}
+<div class="card">
+    <h2>Mappings by Department</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Department</th>
+                <th>Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dept, count in stats.by_department.items() %}
+            <tr>
+                <td>{{ dept or '(Unassigned)' }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Getting Started</h2>
+    <p style="margin-bottom: 1rem;">Map IP addresses or subnets to user identities for enriched flow reporting.</p>
+    <ol style="margin-left: 1.5rem;">
+        <li style="margin-bottom: 0.5rem;"><strong>Add mappings manually</strong> - Enter individual IP-to-user mappings</li>
+        <li style="margin-bottom: 0.5rem;"><strong>Import from CSV</strong> - Bulk import with columns: ip_address, subnet, user_id, user_name, department, location</li>
+        <li style="margin-bottom: 0.5rem;"><strong>Sync from SonicWall SSO</strong> - Automatically pull current user sessions from your firewall</li>
+    </ol>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function syncSSO() {
+    if (!confirm('Sync user mappings from SonicWall SSO?')) return;
+    
+    fetch('/sso/sync', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Synced ' + data.synced + ' users from SonicWall SSO');
+                location.reload();
+            } else {
+                alert('Sync failed: ' + data.message);
+            }
+        })
+        .catch(err => alert('Error: ' + err));
+}
+</script>
+{% endblock %}
