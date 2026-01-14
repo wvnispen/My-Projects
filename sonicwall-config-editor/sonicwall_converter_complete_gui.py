@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
 SonicWall Configuration Converter - Complete Advanced GUI
+Version 4.0 - Fixed field mappings for SonicOS 8.x .exp files
+
 Full-featured interface for viewing and editing SonicWall configurations
 Includes: Zones, Address Objects, Address Groups, Service Objects, Service Groups
+
+Key fixes in v4.0:
+- Address Objects: Fixed field mappings (addrObjIp1_, addrObjIp2_ instead of IpBegin/IpEnd/Mask)
+- Service Objects: Fixed field mappings (svcObjIpType_, svcObjPort1_, svcObjPort2_)
+- Display names now properly shown throughout the interface
+- Type descriptions shown instead of raw type numbers
 """
 
 import tkinter as tk
@@ -300,7 +308,10 @@ class AddressGroupEditor(ConfigEditor):
         self.load_groups()
     
     def get_all_addresses(self):
-        """Get list of all address objects for dropdown."""
+        """Get list of all address objects for dropdown.
+        
+        Uses display name (addrObjIdDisp_) if available, otherwise internal name (addrObjId_).
+        """
         addresses = []
         indices = set()
         
@@ -310,39 +321,75 @@ class AddressGroupEditor(ConfigEditor):
                 indices.add(idx)
         
         for idx in sorted(indices, key=lambda x: int(x) if x.isdigit() else 0):
-            addr_name = self.config_data.get(f'addrObjId_{idx}', '')
+            # Prefer display name over internal name
+            addr_name = self.config_data.get(f'addrObjIdDisp_{idx}', '') or self.config_data.get(f'addrObjId_{idx}', '')
             if addr_name:
                 addresses.append(addr_name)
         
         return sorted(addresses)
     
     def extract_address_groups(self):
-        """Extract address groups from config."""
+        """Extract address groups from config.
+        
+        Address groups are stored as:
+        - addrObjType_X=8 (type 8 = group)
+        - Members in addro_atomToGrp_Y=<group_name> (index Y is the member, value is the group name)
+        - Nested groups in addro_grpToGrp_Z=<group_name> (index Z is the nested group, value is parent group name)
+        
+        Note: Group memberships use internal names (addrObjId_), not display names.
+        """
         groups = {}
-        indices = set()
         
+        # First find all address objects of type 8 (groups)
         for key in self.config_data.keys():
-            if key.startswith('addrGrpId_'):
+            if key.startswith('addrObjType_'):
                 idx = key.split('_')[1]
-                indices.add(idx)
+                obj_type = self.config_data.get(key, '')
+                if obj_type == '8':  # Type 8 is an address group
+                    internal_name = self.config_data.get(f'addrObjId_{idx}', '')
+                    display_name = self.config_data.get(f'addrObjIdDisp_{idx}', '') or internal_name
+                    if internal_name:
+                        groups[idx] = {
+                            'index': idx,
+                            'id': internal_name,  # Internal name for group membership lookup
+                            'display_name': display_name,  # Display name for UI
+                            'members': [],
+                        }
         
-        for idx in sorted(indices, key=lambda x: int(x) if x.isdigit() else 0):
-            group_name = self.config_data.get(f'addrGrpId_{idx}', '')
-            if group_name:
-                # Extract members
-                members = []
-                member_key = f'addrGrpMembers_{idx}'
-                if member_key in self.config_data:
-                    members_str = self.config_data[member_key]
-                    # Members are typically comma or space separated
-                    if members_str:
-                        members = [m.strip() for m in re.split(r'[,\s]+', members_str) if m.strip()]
-                
-                groups[idx] = {
-                    'index': idx,
-                    'id': group_name,
-                    'members': members,
-                }
+        # Now find members for each group
+        for idx, group_data in groups.items():
+            internal_name = group_data['id']
+            members = []
+            
+            # Find all addro_atomToGrp entries where the VALUE equals this group's internal name
+            # The KEY index tells us which address object is the member
+            for key in self.config_data.keys():
+                if key.startswith('addro_atomToGrp_'):
+                    parent_group = self.config_data[key]
+                    if parent_group == internal_name:
+                        # The index is the member address object
+                        member_idx = key.split('_')[-1]
+                        # Use display name for members if available
+                        member_name = self.config_data.get(f'addrObjIdDisp_{member_idx}', '') or \
+                                    self.config_data.get(f'addrObjId_{member_idx}', '')
+                        if member_name and member_name not in members:
+                            members.append(member_name)
+            
+            # Also find nested groups via addro_grpToGrp
+            # Same pattern: value = parent group, index = nested group
+            for key in self.config_data.keys():
+                if key.startswith('addro_grpToGrp_'):
+                    parent_group = self.config_data[key]
+                    if parent_group == internal_name:
+                        # The index is the nested group
+                        nested_idx = key.split('_')[-1]
+                        # Use display name for nested groups if available
+                        nested_name = self.config_data.get(f'addrObjIdDisp_{nested_idx}', '') or \
+                                    self.config_data.get(f'addrObjId_{nested_idx}', '')
+                        if nested_name and nested_name not in members and nested_name != internal_name:
+                            members.append(nested_name)
+            
+            group_data['members'] = sorted(members)
         
         return groups
     
@@ -402,15 +449,18 @@ class AddressGroupEditor(ConfigEditor):
         search_term = self.search_var.get().lower()
         
         for idx, group in sorted(self.groups.items()):
-            if search_term and search_term not in group['id'].lower():
+            # Use display name for search and display
+            display_name = group.get('display_name', group['id'])
+            if search_term and search_term not in display_name.lower():
                 continue
             
             members_str = ', '.join(group['members'][:5])
             if len(group['members']) > 5:
-                members_str += f' ... ({len(group['members']) - 5} more)'
+                extra_count = len(group['members']) - 5
+                members_str += f' ... ({extra_count} more)'
             
             self.tree.insert('', 'end', text=idx,
-                           values=(group['id'], len(group['members']), members_str))
+                           values=(display_name, len(group['members']), members_str))
     
     def filter_groups(self):
         """Filter groups based on search term."""
@@ -427,8 +477,22 @@ class AddressGroupEditor(ConfigEditor):
         self.window.wait_window(dialog.dialog)
         
         if dialog.result:
-            max_idx = max([int(k) for k in self.groups.keys() if k.isdigit()] + [0])
-            new_idx = str(max_idx + 1)
+            # Find next available address object index
+            addr_indices = set()
+            for key in self.config_data.keys():
+                if key.startswith('addrObjId_'):
+                    idx = key.split('_')[1]
+                    if idx.isdigit():
+                        addr_indices.add(int(idx))
+            
+            new_idx = str(max(addr_indices) + 1 if addr_indices else 0)
+            
+            # Create the address object entry for this group
+            self.config_data[f'addrObjId_{new_idx}'] = dialog.result['name']
+            self.config_data[f'addrObjType_{new_idx}'] = '8'  # Type 8 = group
+            self.config_data[f'addrObjZone_{new_idx}'] = ''
+            self.config_data[f'addrObjIp1_{new_idx}'] = '0.0.0.0'
+            self.config_data[f'addrObjIp2_{new_idx}'] = '0.0.0.0'
             
             self.groups[new_idx] = {
                 'index': new_idx,
@@ -478,17 +542,71 @@ class AddressGroupEditor(ConfigEditor):
             self.mark_modified()
     
     def save_changes(self):
-        """Save changes back to config."""
-        # Clear old group entries
-        keys_to_delete = [k for k in self.config_data.keys() 
-                         if k.startswith('addrGrpId_') or k.startswith('addrGrpMembers_')]
+        """Save changes back to config.
+        
+        Address groups in SonicWall are complex:
+        1. Group objects are address objects with type 8
+        2. Membership is stored in separate relationship parameters
+        3. We need to preserve existing relationships and create new ones
+        """
+        # First, update all group names (they're address objects)
+        for idx, group in self.groups.items():
+            # Update the address object name
+            self.config_data[f'addrObjId_{idx}'] = group['id']
+            # Ensure it's marked as type 8 (group)
+            self.config_data[f'addrObjType_{idx}'] = '8'
+        
+        # Now handle group membership via relationships
+        # This is complex - we need to clear old relationships for these groups
+        # and create new ones
+        
+        # Get list of all group names
+        group_names = {group['id'] for group in self.groups.values()}
+        
+        # Clear old relationship entries for our groups
+        keys_to_delete = []
+        for key in list(self.config_data.keys()):
+            if key.startswith('addro_atomToGrp_') or key.startswith('addro_grpToGrp_'):
+                if self.config_data[key] in group_names:
+                    keys_to_delete.append(key)
+        
         for key in keys_to_delete:
             del self.config_data[key]
         
-        # Save new groups
-        for idx, group in self.groups.items():
-            self.config_data[f'addrGrpId_{idx}'] = group['id']
-            self.config_data[f'addrGrpMembers_{idx}'] = ','.join(group['members'])
+        # Create new relationship entries
+        # We need to find the next available index for relationships
+        rel_indices = set()
+        for key in self.config_data.keys():
+            if key.startswith('addro_atomToGrp_') or key.startswith('addro_grpToGrp_'):
+                idx = key.split('_')[-1]
+                if idx.isdigit():
+                    rel_indices.add(int(idx))
+        
+        next_rel_idx = max(rel_indices) + 1 if rel_indices else 0
+        
+        # For each group, create relationship entries for its members
+        for group_idx, group in self.groups.items():
+            group_name = group['id']
+            
+            for member_name in group['members']:
+                # Find the address object index for this member
+                member_idx = None
+                for key in self.config_data.keys():
+                    if key.startswith('addrObjId_'):
+                        if self.config_data[key] == member_name:
+                            member_idx = key.split('_')[1]
+                            break
+                
+                if member_idx:
+                    # Check if this member is itself a group (type 8)
+                    member_type = self.config_data.get(f'addrObjType_{member_idx}', '')
+                    if member_type == '8':
+                        # It's a nested group
+                        self.config_data[f'addro_grpToGrp_{next_rel_idx}'] = group_name
+                    else:
+                        # It's a regular address object
+                        self.config_data[f'addro_atomToGrp_{next_rel_idx}'] = group_name
+                    next_rel_idx += 1
         
         messagebox.showinfo("Success", "Address groups saved successfully!")
         self.modified = False
@@ -692,30 +810,59 @@ class ServiceGroupEditor(ConfigEditor):
         return sorted(services)
     
     def extract_service_groups(self):
-        """Extract service groups from config."""
+        """Extract service groups from config.
+        
+        Service groups are stored as:
+        - svcObjType_X=2 (type 2 = group)
+        - Members in so_atomToGrp_Y=<group_name> (index Y is the member, value is the group name)
+        - Nested groups in so_grpToGrp_Z=<group_name> (index Z is the nested group, value is parent group name)
+        """
         groups = {}
-        indices = set()
         
+        # First find all service objects of type 2 (groups)
         for key in self.config_data.keys():
-            if key.startswith('svcGrpId_'):
+            if key.startswith('svcObjType_'):
                 idx = key.split('_')[1]
-                indices.add(idx)
+                obj_type = self.config_data.get(key, '')
+                if obj_type == '2':  # Type 2 is a service group
+                    group_name = self.config_data.get(f'svcObjId_{idx}', '')
+                    if group_name:
+                        groups[idx] = {
+                            'index': idx,
+                            'id': group_name,
+                            'members': [],
+                        }
         
-        for idx in sorted(indices, key=lambda x: int(x) if x.isdigit() else 0):
-            group_name = self.config_data.get(f'svcGrpId_{idx}', '')
-            if group_name:
-                members = []
-                member_key = f'svcGrpMembers_{idx}'
-                if member_key in self.config_data:
-                    members_str = self.config_data[member_key]
-                    if members_str:
-                        members = [m.strip() for m in re.split(r'[,\s]+', members_str) if m.strip()]
-                
-                groups[idx] = {
-                    'index': idx,
-                    'id': group_name,
-                    'members': members,
-                }
+        # Now find members for each group
+        for idx, group_data in groups.items():
+            group_name = group_data['id']
+            members = []
+            
+            # Find all so_atomToGrp entries where the VALUE equals this group name
+            # The KEY index tells us which service object is the member
+            for key in self.config_data.keys():
+                if key.startswith('so_atomToGrp_'):
+                    parent_group = self.config_data[key]
+                    if parent_group == group_name:
+                        # The index is the member service object
+                        member_idx = key.split('_')[-1]
+                        member_name = self.config_data.get(f'svcObjId_{member_idx}', '')
+                        if member_name and member_name not in members:
+                            members.append(member_name)
+            
+            # Also find nested groups via so_grpToGrp
+            # Same pattern: value = parent group, index = nested group
+            for key in self.config_data.keys():
+                if key.startswith('so_grpToGrp_'):
+                    parent_group = self.config_data[key]
+                    if parent_group == group_name:
+                        # The index is the nested group
+                        nested_idx = key.split('_')[-1]
+                        nested_name = self.config_data.get(f'svcObjId_{nested_idx}', '')
+                        if nested_name and nested_name not in members and nested_name != group_name:
+                            members.append(nested_name)
+            
+            group_data['members'] = sorted(members)
         
         return groups
     
@@ -780,7 +927,8 @@ class ServiceGroupEditor(ConfigEditor):
             
             members_str = ', '.join(group['members'][:5])
             if len(group['members']) > 5:
-                members_str += f' ... ({len(group['members']) - 5} more)'
+                extra_count = len(group['members']) - 5
+                members_str += f' ... ({extra_count} more)'
             
             self.tree.insert('', 'end', text=idx,
                            values=(group['id'], len(group['members']), members_str))
@@ -800,8 +948,22 @@ class ServiceGroupEditor(ConfigEditor):
         self.window.wait_window(dialog.dialog)
         
         if dialog.result:
-            max_idx = max([int(k) for k in self.groups.keys() if k.isdigit()] + [0])
-            new_idx = str(max_idx + 1)
+            # Find next available service object index
+            svc_indices = set()
+            for key in self.config_data.keys():
+                if key.startswith('svcObjId_'):
+                    idx = key.split('_')[1]
+                    if idx.isdigit():
+                        svc_indices.add(int(idx))
+            
+            new_idx = str(max(svc_indices) + 1 if svc_indices else 0)
+            
+            # Create the service object entry for this group
+            self.config_data[f'svcObjId_{new_idx}'] = dialog.result['name']
+            self.config_data[f'svcObjType_{new_idx}'] = '2'  # Type 2 = group
+            self.config_data[f'svcObjPort1_{new_idx}'] = '0'
+            self.config_data[f'svcObjPort2_{new_idx}'] = '0'
+            self.config_data[f'svcObjProtocol_{new_idx}'] = '0'
             
             self.groups[new_idx] = {
                 'index': new_idx,
@@ -851,17 +1013,68 @@ class ServiceGroupEditor(ConfigEditor):
             self.mark_modified()
     
     def save_changes(self):
-        """Save changes back to config."""
-        # Clear old group entries
-        keys_to_delete = [k for k in self.config_data.keys() 
-                         if k.startswith('svcGrpId_') or k.startswith('svcGrpMembers_')]
+        """Save changes back to config.
+        
+        Service groups in SonicWall are complex:
+        1. Group objects are service objects with type 2
+        2. Membership is stored in separate relationship parameters
+        3. We need to preserve existing relationships and create new ones
+        """
+        # First, update all group names (they're service objects)
+        for idx, group in self.groups.items():
+            # Update the service object name
+            self.config_data[f'svcObjId_{idx}'] = group['id']
+            # Ensure it's marked as type 2 (group)
+            self.config_data[f'svcObjType_{idx}'] = '2'
+        
+        # Now handle group membership via relationships
+        # Get list of all group names
+        group_names = {group['id'] for group in self.groups.values()}
+        
+        # Clear old relationship entries for our groups
+        keys_to_delete = []
+        for key in list(self.config_data.keys()):
+            if key.startswith('so_atomToGrp_') or key.startswith('so_grpToGrp_'):
+                if self.config_data[key] in group_names:
+                    keys_to_delete.append(key)
+        
         for key in keys_to_delete:
             del self.config_data[key]
         
-        # Save new groups
-        for idx, group in self.groups.items():
-            self.config_data[f'svcGrpId_{idx}'] = group['id']
-            self.config_data[f'svcGrpMembers_{idx}'] = ','.join(group['members'])
+        # Create new relationship entries
+        # Find the next available index for relationships
+        rel_indices = set()
+        for key in self.config_data.keys():
+            if key.startswith('so_atomToGrp_') or key.startswith('so_grpToGrp_'):
+                idx = key.split('_')[-1]
+                if idx.isdigit():
+                    rel_indices.add(int(idx))
+        
+        next_rel_idx = max(rel_indices) + 1 if rel_indices else 0
+        
+        # For each group, create relationship entries for its members
+        for group_idx, group in self.groups.items():
+            group_name = group['id']
+            
+            for member_name in group['members']:
+                # Find the service object index for this member
+                member_idx = None
+                for key in self.config_data.keys():
+                    if key.startswith('svcObjId_'):
+                        if self.config_data[key] == member_name:
+                            member_idx = key.split('_')[1]
+                            break
+                
+                if member_idx:
+                    # Check if this member is itself a group (type 2)
+                    member_type = self.config_data.get(f'svcObjType_{member_idx}', '')
+                    if member_type == '2':
+                        # It's a nested group
+                        self.config_data[f'so_grpToGrp_{next_rel_idx}'] = group_name
+                    else:
+                        # It's a regular service object
+                        self.config_data[f'so_atomToGrp_{next_rel_idx}'] = group_name
+                    next_rel_idx += 1
         
         messagebox.showinfo("Success", "Service groups saved successfully!")
         self.modified = False
@@ -1035,11 +1248,1108 @@ class ServiceGroupDialog:
         self.dialog.destroy()
 
 
-# Note: AddressObjectEditor and ServiceObjectEditor classes need to be included
-# They are copied from the advanced GUI implementation above
+
+
+class InterfaceEditor(ConfigEditor):
+    """Editor for network interfaces."""
+    
+    def __init__(self, parent, config):
+        super().__init__(parent, "Interface Editor", config)
+        self.interfaces = self.extract_interfaces()
+        self.create_widgets()
+        self.load_interfaces()
+    
+    def extract_interfaces(self):
+        """Extract interface configurations from config."""
+        interfaces = {}
+        indices = set()
+        
+        # Find all interface indices
+        for key in self.config_data.keys():
+            if key.startswith('iface_name_'):
+                idx = key.split('_')[2]
+                indices.add(idx)
+        
+        # Extract interface details
+        for idx in sorted(indices, key=lambda x: int(x) if x.isdigit() else 999999):
+            iface = {
+                'index': idx,
+                'name': self.config_data.get(f'iface_name_{idx}', ''),
+                'ifnum': self.config_data.get(f'iface_ifnum_{idx}', ''),
+                'comment': self.config_data.get(f'iface_comment_{idx}', ''),
+                'zone': self.get_interface_zone(idx),
+                'vlan_id': self.config_data.get(f'if_l2cfg_vlan_id_{idx}', ''),
+            }
+            if iface['name']:
+                interfaces[idx] = iface
+        
+        return interfaces
+    
+    def get_interface_zone(self, idx):
+        """Get zone name for interface."""
+        # Match interface to zone by checking address objects
+        ifnum = self.config_data.get(f'iface_ifnum_{idx}', '')
+        if not ifnum:
+            return ''
+        
+        # Find address objects with this interface's zone
+        for key in self.config_data.keys():
+            if key.startswith('addrObjZone_'):
+                addr_idx = key.split('_')[1]
+                # Check if this address belongs to this interface
+                addr_name = self.config_data.get(f'addrObjId_{addr_idx}', '')
+                iface_name = self.config_data.get(f'iface_name_{idx}', '')
+                if iface_name and iface_name in addr_name:
+                    return self.config_data.get(key, '')
+        
+        return ''
+    
+    def create_widgets(self):
+        """Create editor widgets."""
+        # Toolbar
+        toolbar = ttk.Frame(self.window)
+        toolbar.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(toolbar, text="Edit Selected", command=self.edit_interface).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Close", command=self.window.destroy).pack(side=tk.RIGHT, padx=2)
+        
+        # Info label
+        info_frame = ttk.Frame(self.window)
+        info_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        ttk.Label(info_frame, text="💡 Tip: Double-click an interface to edit its comment", 
+                 foreground="blue").pack(side=tk.LEFT, padx=2)
+        
+        # Search
+        search_frame = ttk.Frame(self.window)
+        search_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=2)
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self.filter_interfaces())
+        ttk.Entry(search_frame, textvariable=self.search_var, width=30).pack(side=tk.LEFT, padx=2)
+        
+        # Treeview
+        tree_frame = ttk.Frame(self.window)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical")
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        columns = ('Interface', 'Zone', 'VLAN ID', 'Comment')
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show='tree headings',
+                                  yscrollcommand=vsb.set)
+        
+        vsb.config(command=self.tree.yview)
+        
+        self.tree.heading('#0', text='Index')
+        self.tree.heading('Interface', text='Interface')
+        self.tree.heading('Zone', text='Zone')
+        self.tree.heading('VLAN ID', text='VLAN ID')
+        self.tree.heading('Comment', text='Comment')
+        
+        self.tree.column('#0', width=60)
+        self.tree.column('Interface', width=150)
+        self.tree.column('Zone', width=100)
+        self.tree.column('VLAN ID', width=100)
+        self.tree.column('Comment', width=400)
+        
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        self.tree.bind('<Double-1>', lambda e: self.edit_interface())
+    
+    def load_interfaces(self):
+        """Load interfaces into treeview."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        search_term = self.search_var.get().lower()
+        
+        for idx, iface in sorted(self.interfaces.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 999999):
+            if search_term and search_term not in iface['name'].lower() and search_term not in iface['comment'].lower():
+                continue
+            
+            # Format VLAN ID display
+            vlan_display = iface['vlan_id'] if iface['vlan_id'] and iface['vlan_id'] not in ['0', '65535'] else ''
+            
+            self.tree.insert('', 'end', text=idx,
+                           values=(iface['name'], iface['zone'], vlan_display, iface['comment']))
+    
+    def filter_interfaces(self):
+        """Filter interfaces based on search term."""
+        self.load_interfaces()
+    
+    def edit_interface(self):
+        """Edit selected interface comment."""
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select an interface to edit")
+            return
+        
+        idx = self.tree.item(selection[0])['text']
+        iface = self.interfaces[idx]
+        
+        dialog = InterfaceDialog(self.window, iface)
+        if dialog.result:
+            # Update config
+            self.config_data[f'iface_comment_{idx}'] = dialog.result['comment']
+            self.config_data[f'iface_comment6_{idx}'] = dialog.result['comment']  # IPv6 version
+            
+            # Update local copy
+            self.interfaces[idx]['comment'] = dialog.result['comment']
+            
+            # Mark as modified
+            self.mark_modified()
+            
+            # Refresh display
+            self.load_interfaces()
+            
+            messagebox.showinfo("Success", "Interface comment updated. Click 'Save Changes' to apply.")
+    
+    def save_changes(self):
+        """Save changes back to config."""
+        if self.modified:
+            self.mark_modified()
+            messagebox.showinfo("Success", "Changes saved to configuration. Use 'Save as .exp' to export.")
+
+
+class InterfaceDialog:
+    """Dialog for editing interface properties."""
+    
+    def __init__(self, parent, iface=None):
+        self.result = None
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Edit Interface")
+        self.dialog.geometry("500x200")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Interface info (read-only)
+        info_frame = ttk.LabelFrame(self.dialog, text="Interface Information", padding="10")
+        info_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ttk.Label(info_frame, text=f"Interface: {iface['name']}").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
+        ttk.Label(info_frame, text=f"Zone: {iface['zone']}").grid(row=1, column=0, sticky=tk.W, padx=5, pady=2)
+        if iface['vlan_id'] and iface['vlan_id'] not in ['0', '65535']:
+            ttk.Label(info_frame, text=f"VLAN ID: {iface['vlan_id']}").grid(row=2, column=0, sticky=tk.W, padx=5, pady=2)
+        
+        # Editable fields
+        edit_frame = ttk.LabelFrame(self.dialog, text="Editable Properties", padding="10")
+        edit_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        ttk.Label(edit_frame, text="Comment:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        
+        self.comment_var = tk.StringVar(value=iface.get('comment', ''))
+        comment_entry = ttk.Entry(edit_frame, textvariable=self.comment_var, width=50)
+        comment_entry.grid(row=0, column=1, padx=5, pady=5)
+        comment_entry.focus()
+        
+        # Buttons
+        button_frame = ttk.Frame(self.dialog, padding="10")
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Save", command=self.save).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT)
+        
+        # Center dialog
+        self.dialog.update_idletasks()
+        x = (parent.winfo_width() - self.dialog.winfo_width()) // 2 + parent.winfo_x()
+        y = (parent.winfo_height() - self.dialog.winfo_height()) // 2 + parent.winfo_y()
+        self.dialog.geometry(f"+{x}+{y}")
+        
+        # Wait for dialog
+        self.dialog.wait_window()
+    
+    def save(self):
+        """Save interface changes."""
+        self.result = {
+            'comment': self.comment_var.get().strip(),
+        }
+        self.dialog.destroy()
+
+
+class VLANEditor(ConfigEditor):
+    """Editor for VLAN configurations."""
+    
+    def __init__(self, parent, config):
+        super().__init__(parent, "VLAN Editor", config)
+        self.vlans = self.extract_vlans()
+        self.create_widgets()
+        self.load_vlans()
+    
+    def extract_vlans(self):
+        """Extract VLAN configurations from config."""
+        vlans = {}
+        
+        # Find all interfaces that are VLAN subinterfaces
+        for key in self.config_data.keys():
+            if key.startswith('iface_name_'):
+                idx = key.split('_')[2]
+                iface_name = self.config_data.get(key, '')
+                
+                # Check if it's a VLAN subinterface (format: X6:V10)
+                if ':V' in iface_name or ':v' in iface_name.lower():
+                    # Extract VLAN ID from interface name
+                    try:
+                        vlan_part = iface_name.split(':')[1]  # Get "V10" part
+                        vlan_id = vlan_part[1:]  # Remove 'V' to get "10"
+                    except:
+                        vlan_id = 'Unknown'
+                    
+                    parent = iface_name.split(':')[0] if ':' in iface_name else ''
+                    
+                    vlans[idx] = {
+                        'index': idx,
+                        'vlan_id': vlan_id,
+                        'interface': iface_name,
+                        'parent': parent,
+                        'ifnum': self.config_data.get(f'iface_ifnum_{idx}', ''),
+                        'comment': self.config_data.get(f'iface_comment_{idx}', ''),
+                    }
+        
+        return vlans
+    
+    def create_widgets(self):
+        """Create editor widgets."""
+        # Toolbar
+        toolbar = ttk.Frame(self.window)
+        toolbar.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(toolbar, text="Close", command=self.window.destroy).pack(side=tk.RIGHT, padx=2)
+        
+        # Info label
+        info_frame = ttk.Frame(self.window)
+        info_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        ttk.Label(info_frame, text="💡 Tip: VLANs are displayed from interfaces with VLAN IDs configured", 
+                 foreground="blue").pack(side=tk.LEFT, padx=2)
+        
+        # Search
+        search_frame = ttk.Frame(self.window)
+        search_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=2)
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self.filter_vlans())
+        ttk.Entry(search_frame, textvariable=self.search_var, width=30).pack(side=tk.LEFT, padx=2)
+        
+        # Treeview
+        tree_frame = ttk.Frame(self.window)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical")
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        columns = ('VLAN ID', 'Interface', 'Parent Interface', 'Comment')
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show='tree headings',
+                                  yscrollcommand=vsb.set)
+        
+        vsb.config(command=self.tree.yview)
+        
+        self.tree.heading('#0', text='Index')
+        self.tree.heading('VLAN ID', text='VLAN ID')
+        self.tree.heading('Interface', text='Interface')
+        self.tree.heading('Parent Interface', text='Parent')
+        self.tree.heading('Comment', text='Comment')
+        
+        self.tree.column('#0', width=60)
+        self.tree.column('VLAN ID', width=100)
+        self.tree.column('Interface', width=200)
+        self.tree.column('Parent Interface', width=150)
+        self.tree.column('Comment', width=300)
+        
+        self.tree.pack(fill=tk.BOTH, expand=True)
+    
+    def load_vlans(self):
+        """Load VLANs into treeview."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        search_term = self.search_var.get().lower()
+        
+        for idx, vlan in sorted(self.vlans.items(), 
+                               key=lambda x: int(x[1]['vlan_id']) if x[1]['vlan_id'].isdigit() else 999999):
+            if search_term and search_term not in vlan['interface'].lower() and search_term not in vlan['vlan_id']:
+                continue
+            
+            self.tree.insert('', 'end', text=idx,
+                           values=(vlan['vlan_id'], vlan['interface'], vlan['parent'], vlan['comment']))
+    
+    def filter_vlans(self):
+        """Filter VLANs based on search term."""
+        self.load_vlans()
 
 
 class AddressObjectEditor(ConfigEditor):
+    """Editor for address objects."""
+    
+    def __init__(self, parent, config):
+        super().__init__(parent, "Address Objects Editor", config)
+        self.addresses = self.extract_address_objects()
+        self.create_widgets()
+        self.load_addresses()
+        
+    def extract_address_objects(self):
+        """Extract address objects from config.
+        
+        SonicWall .exp file field mappings:
+        - addrObjId_X: Internal name (used for references)
+        - addrObjIdDisp_X: Display name (shown in GUI)
+        - addrObjType_X: Object type (1=Host, 2=Range, 4=Network, 8=Group, 8192=FQDN)
+        - addrObjZone_X: Zone assignment
+        - addrObjIp1_X: Primary IP (host IP, network address, or range start)
+        - addrObjIp2_X: Secondary IP (subnet mask for networks, or range end)
+        """
+        addresses = {}
+        indices = set()
+        
+        for key in self.config_data.keys():
+            if key.startswith('addrObjId_'):
+                idx = key.split('_')[1]
+                indices.add(idx)
+        
+        for idx in sorted(indices, key=lambda x: int(x) if x.isdigit() else 0):
+            obj_type = self.config_data.get(f'addrObjType_{idx}', '')
+            ip1 = self.config_data.get(f'addrObjIp1_{idx}', '')
+            ip2 = self.config_data.get(f'addrObjIp2_{idx}', '')
+            
+            # For type 4 (Network), ip2 is the subnet mask
+            # For type 2 (Range), ip2 is the end IP
+            # For type 1 (Host), ip2 is typically 0.0.0.0
+            if obj_type == '4':  # Network
+                mask = ip2
+                ip_end = ''
+            elif obj_type == '2':  # Range
+                mask = ''
+                ip_end = ip2
+            else:
+                mask = ''
+                ip_end = ip2
+            
+            addr = {
+                'index': idx,
+                'id': self.config_data.get(f'addrObjId_{idx}', ''),
+                'display_name': self.config_data.get(f'addrObjIdDisp_{idx}', ''),
+                'type': obj_type,
+                'zone': self.config_data.get(f'addrObjZone_{idx}', ''),
+                'ip1': ip1,  # Primary IP (host, network, or range start)
+                'ip2': ip2,  # Raw value from config
+                'ip_begin': ip1,  # For UI compatibility
+                'ip_end': ip_end,  # Range end IP (if applicable)
+                'mask': mask,  # Subnet mask (if applicable)
+                'properties': self.config_data.get(f'addrObjProperties_{idx}', ''),
+                'instance_id': self.config_data.get(f'addrObjInstanceId_{idx}', ''),
+            }
+            if addr['id'] or addr['display_name']:
+                addresses[idx] = addr
+        
+        return addresses
+    
+    def create_widgets(self):
+        """Create editor widgets."""
+        # Toolbar
+        toolbar = ttk.Frame(self.window)
+        toolbar.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(toolbar, text="Add New", command=self.add_address).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Edit Selected", command=self.edit_address).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Delete Selected", command=self.delete_address).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Save Changes", command=self.save_changes).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Close", command=self.window.destroy).pack(side=tk.RIGHT, padx=2)
+        
+        # Search bar
+        search_frame = ttk.Frame(self.window)
+        search_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=2)
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self.filter_addresses())
+        ttk.Entry(search_frame, textvariable=self.search_var, width=30).pack(side=tk.LEFT, padx=2)
+        
+        # Treeview for address list
+        tree_frame = ttk.Frame(self.window)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Scrollbars
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical")
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal")
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Treeview
+        columns = ('Name', 'Zone', 'Type', 'IP Begin', 'IP End', 'Mask')
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show='tree headings',
+                                  yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        
+        vsb.config(command=self.tree.yview)
+        hsb.config(command=self.tree.xview)
+        
+        # Column headings
+        self.tree.heading('#0', text='Index')
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=120)
+        
+        self.tree.column('#0', width=60)
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        
+        # Double-click to edit
+        self.tree.bind('<Double-1>', lambda e: self.edit_address())
+    
+    def load_addresses(self):
+        """Load addresses into treeview."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        search_term = self.search_var.get().lower()
+        
+        # Type descriptions for display
+        type_names = {
+            '1': 'Host',
+            '2': 'Range',
+            '4': 'Network',
+            '8': 'Group',
+            '8192': 'FQDN',
+        }
+        
+        for idx, addr in sorted(self.addresses.items()):
+            # Use display name if available, otherwise internal name
+            display_name = addr.get('display_name') or addr.get('id', '')
+            
+            # Filter by search term
+            if search_term and search_term not in display_name.lower() and search_term not in addr.get('ip1', '').lower():
+                continue
+            
+            # Get type description
+            type_val = addr.get('type', '')
+            type_desc = type_names.get(type_val, f'Type {type_val}')
+            
+            # Format IP display based on type
+            ip_display = addr.get('ip1', '')
+            ip2_display = ''
+            mask_display = ''
+            
+            if type_val == '4':  # Network - show mask
+                mask_display = addr.get('ip2', '')
+            elif type_val == '2':  # Range - show end IP
+                ip2_display = addr.get('ip2', '')
+            
+            self.tree.insert('', 'end', text=idx,
+                           values=(display_name, addr.get('zone', ''), type_desc,
+                                 ip_display, ip2_display, mask_display))
+    
+    def filter_addresses(self):
+        """Filter addresses based on search term."""
+        self.load_addresses()
+    
+    def add_address(self):
+        """Add a new address object."""
+        dialog = AddressDialog(self.window, "Add Address Object", None)
+        self.window.wait_window(dialog.dialog)
+        
+        if dialog.result:
+            # Find next available index
+            max_idx = max([int(k) for k in self.addresses.keys() if k.isdigit()] + [0])
+            new_idx = str(max_idx + 1)
+            
+            obj_type = dialog.result['type']
+            
+            # Determine ip2 value based on type
+            if obj_type == '4':  # Network
+                ip2 = dialog.result['mask']
+            elif obj_type == '2':  # Range
+                ip2 = dialog.result['ip_end']
+            else:  # Host
+                ip2 = '0.0.0.0'
+            
+            self.addresses[new_idx] = {
+                'index': new_idx,
+                'id': dialog.result['name'],
+                'display_name': dialog.result['name'],
+                'type': obj_type,
+                'zone': dialog.result['zone'],
+                'ip1': dialog.result['ip_begin'],
+                'ip2': ip2,
+                'ip_begin': dialog.result['ip_begin'],
+                'ip_end': dialog.result['ip_end'],
+                'mask': dialog.result['mask'],
+            }
+            
+            self.load_addresses()
+            self.mark_modified()
+    
+    def edit_address(self):
+        """Edit selected address object."""
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select an address to edit")
+            return
+        
+        idx = self.tree.item(selection[0])['text']
+        addr = self.addresses[idx]
+        
+        dialog = AddressDialog(self.window, "Edit Address Object", addr)
+        self.window.wait_window(dialog.dialog)
+        
+        if dialog.result:
+            obj_type = dialog.result['type']
+            
+            # Determine ip2 value based on type
+            if obj_type == '4':  # Network
+                ip2 = dialog.result['mask']
+            elif obj_type == '2':  # Range
+                ip2 = dialog.result['ip_end']
+            else:  # Host
+                ip2 = '0.0.0.0'
+            
+            self.addresses[idx].update({
+                'id': dialog.result['name'],
+                'display_name': dialog.result['name'],
+                'type': obj_type,
+                'zone': dialog.result['zone'],
+                'ip1': dialog.result['ip_begin'],
+                'ip2': ip2,
+                'ip_begin': dialog.result['ip_begin'],
+                'ip_end': dialog.result['ip_end'],
+                'mask': dialog.result['mask'],
+            })
+            
+            self.load_addresses()
+            self.mark_modified()
+    
+    def delete_address(self):
+        """Delete selected address object."""
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select an address to delete")
+            return
+        
+        idx = self.tree.item(selection[0])['text']
+        addr = self.addresses[idx]
+        
+        if messagebox.askyesno("Confirm Delete", 
+                              f"Delete address object '{addr['id']}'?\n\nThis cannot be undone."):
+            del self.addresses[idx]
+            self.load_addresses()
+            self.mark_modified()
+    
+    def save_changes(self):
+        """Save changes back to config.
+        
+        Maps internal address object fields back to SonicWall .exp format:
+        - addrObjId_X: Internal name
+        - addrObjIdDisp_X: Display name
+        - addrObjType_X: Object type
+        - addrObjZone_X: Zone assignment
+        - addrObjIp1_X: Primary IP
+        - addrObjIp2_X: Secondary IP (mask or range end)
+        """
+        for idx, addr in self.addresses.items():
+            self.config_data[f'addrObjId_{idx}'] = addr['id']
+            self.config_data[f'addrObjIdDisp_{idx}'] = addr.get('display_name') or addr['id']
+            self.config_data[f'addrObjType_{idx}'] = addr['type']
+            self.config_data[f'addrObjZone_{idx}'] = addr['zone']
+            self.config_data[f'addrObjIp1_{idx}'] = addr.get('ip1', '') or addr.get('ip_begin', '')
+            
+            # Set ip2 based on type
+            obj_type = addr.get('type', '')
+            if obj_type == '4':  # Network - ip2 is mask
+                self.config_data[f'addrObjIp2_{idx}'] = addr.get('mask', '') or addr.get('ip2', '')
+            elif obj_type == '2':  # Range - ip2 is end IP
+                self.config_data[f'addrObjIp2_{idx}'] = addr.get('ip_end', '') or addr.get('ip2', '')
+            else:  # Host or other - preserve ip2
+                self.config_data[f'addrObjIp2_{idx}'] = addr.get('ip2', '0.0.0.0')
+        
+        messagebox.showinfo("Success", "Address objects saved successfully!")
+        self.modified = False
+        self.window.title(self.window.title().replace(" - Modified", ""))
+
+
+class AddressDialog:
+    """Dialog for adding/editing address objects."""
+    
+    def __init__(self, parent, title, address_data):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(title)
+        self.dialog.geometry("500x350")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        self.result = None
+        self.address_data = address_data or {}
+        
+        self.create_widgets()
+        
+        # Center dialog
+        self.dialog.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() - self.dialog.winfo_width()) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - self.dialog.winfo_height()) // 2
+        self.dialog.geometry(f"+{x}+{y}")
+    
+    def create_widgets(self):
+        """Create dialog widgets."""
+        # Form fields
+        form_frame = ttk.Frame(self.dialog, padding="10")
+        form_frame.pack(fill=tk.BOTH, expand=True)
+        
+        row = 0
+        
+        # Name
+        ttk.Label(form_frame, text="Name:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.name_var = tk.StringVar(value=self.address_data.get('id', ''))
+        ttk.Entry(form_frame, textvariable=self.name_var, width=40).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # Zone
+        ttk.Label(form_frame, text="Zone:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.zone_var = tk.StringVar(value=self.address_data.get('zone', ''))
+        zone_combo = ttk.Combobox(form_frame, textvariable=self.zone_var, width=38)
+        zone_combo['values'] = ('LAN', 'WAN', 'DMZ', 'VPN', 'SSLVPN', 'WLAN', 'MGMT')
+        zone_combo.grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # Type
+        ttk.Label(form_frame, text="Type:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.type_var = tk.StringVar(value=self.address_data.get('type', '1'))
+        type_combo = ttk.Combobox(form_frame, textvariable=self.type_var, width=38)
+        type_combo['values'] = ('1 - Host', '4 - Network', '2 - Range', '8192 - FQDN')
+        type_combo.grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # IP Begin
+        ttk.Label(form_frame, text="IP Address / Begin:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.ip_begin_var = tk.StringVar(value=self.address_data.get('ip_begin', ''))
+        ttk.Entry(form_frame, textvariable=self.ip_begin_var, width=40).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # IP End
+        ttk.Label(form_frame, text="IP End (for Range):").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.ip_end_var = tk.StringVar(value=self.address_data.get('ip_end', ''))
+        ttk.Entry(form_frame, textvariable=self.ip_end_var, width=40).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # Netmask
+        ttk.Label(form_frame, text="Netmask (for Network):").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.mask_var = tk.StringVar(value=self.address_data.get('mask', ''))
+        ttk.Entry(form_frame, textvariable=self.mask_var, width=40).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        form_frame.columnconfigure(1, weight=1)
+        
+        # Help text
+        help_frame = ttk.LabelFrame(self.dialog, text="Quick Guide", padding="10")
+        help_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        help_text = """Host: Single IP address (e.g., 192.168.1.100)
+Network: Network with netmask (e.g., 192.168.1.0 / 255.255.255.0)
+Range: IP range (e.g., 192.168.1.10 to 192.168.1.20)
+FQDN: Fully qualified domain name (e.g., www.example.com)"""
+        
+        ttk.Label(help_frame, text=help_text, justify=tk.LEFT).pack()
+        
+        # Buttons
+        button_frame = ttk.Frame(self.dialog, padding="10")
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Save", command=self.save).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT)
+    
+    def save(self):
+        """Save the address object."""
+        name = self.name_var.get().strip()
+        
+        if not name:
+            messagebox.showerror("Validation Error", "Name is required")
+            return
+        
+        # Extract type number from combo selection
+        type_val = self.type_var.get().split(' - ')[0] if ' - ' in self.type_var.get() else self.type_var.get()
+        
+        self.result = {
+            'name': name,
+            'zone': self.zone_var.get(),
+            'type': type_val,
+            'ip_begin': self.ip_begin_var.get(),
+            'ip_end': self.ip_end_var.get(),
+            'mask': self.mask_var.get(),
+        }
+        
+        self.dialog.destroy()
+
+
+class ServiceObjectEditor(ConfigEditor):
+    """Editor for service objects."""
+    
+    def __init__(self, parent, config):
+        super().__init__(parent, "Service Objects Editor", config)
+        self.services = self.extract_service_objects()
+        self.create_widgets()
+        self.load_services()
+    
+    def extract_service_objects(self):
+        """Extract service objects from config.
+        
+        SonicWall .exp file field mappings:
+        - svcObjId_X: Service name
+        - svcObjType_X: Object type (1=Service, 2=Group)
+        - svcObjIpType_X: IP Protocol number (6=TCP, 17=UDP, etc.)
+        - svcObjPort1_X: Start port
+        - svcObjPort2_X: End port
+        """
+        services = {}
+        indices = set()
+        
+        for key in self.config_data.keys():
+            if key.startswith('svcObjId_'):
+                idx = key.split('_')[1]
+                indices.add(idx)
+        
+        # Protocol number to name mapping
+        protocol_names = {
+            '6': 'TCP',
+            '17': 'UDP',
+            '1': 'ICMP',
+            '47': 'GRE',
+            '50': 'ESP',
+            '51': 'AH',
+            '0': 'Any',
+        }
+        
+        for idx in sorted(indices, key=lambda x: int(x) if x.isdigit() else 0):
+            ip_type = self.config_data.get(f'svcObjIpType_{idx}', '')
+            protocol_name = protocol_names.get(ip_type, f'Proto {ip_type}' if ip_type else '')
+            
+            svc = {
+                'index': idx,
+                'id': self.config_data.get(f'svcObjId_{idx}', ''),
+                'type': self.config_data.get(f'svcObjType_{idx}', ''),
+                'ip_type': ip_type,  # Raw protocol number
+                'protocol': protocol_name,  # Human-readable protocol name
+                'port1': self.config_data.get(f'svcObjPort1_{idx}', ''),
+                'port2': self.config_data.get(f'svcObjPort2_{idx}', ''),
+                'port_low': self.config_data.get(f'svcObjPort1_{idx}', ''),  # For compatibility
+                'port_high': self.config_data.get(f'svcObjPort2_{idx}', ''),  # For compatibility
+                'properties': self.config_data.get(f'svcObjProperties_{idx}', ''),
+                'management': self.config_data.get(f'svcObjManagement_{idx}', ''),
+            }
+            if svc['id']:
+                services[idx] = svc
+        
+        return services
+    
+    def create_widgets(self):
+        """Create editor widgets."""
+        # Toolbar
+        toolbar = ttk.Frame(self.window)
+        toolbar.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(toolbar, text="Add New", command=self.add_service).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Edit Selected", command=self.edit_service).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Delete Selected", command=self.delete_service).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Save Changes", command=self.save_changes).pack(side=tk.LEFT, padx=2)
+        ttk.Button(toolbar, text="Close", command=self.window.destroy).pack(side=tk.RIGHT, padx=2)
+        
+        # Search bar
+        search_frame = ttk.Frame(self.window)
+        search_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
+        
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=2)
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self.filter_services())
+        ttk.Entry(search_frame, textvariable=self.search_var, width=30).pack(side=tk.LEFT, padx=2)
+        
+        # Treeview
+        tree_frame = ttk.Frame(self.window)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical")
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal")
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        columns = ('Name', 'Protocol', 'Port Start', 'Port End', 'Type')
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show='tree headings',
+                                  yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        
+        vsb.config(command=self.tree.yview)
+        hsb.config(command=self.tree.xview)
+        
+        self.tree.heading('#0', text='Index')
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=120)
+        
+        self.tree.column('#0', width=60)
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        
+        self.tree.bind('<Double-1>', lambda e: self.edit_service())
+    
+    def load_services(self):
+        """Load services into treeview."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        search_term = self.search_var.get().lower()
+        
+        # Type descriptions
+        type_names = {
+            '1': 'Service',
+            '2': 'Group',
+        }
+        
+        for idx, svc in sorted(self.services.items()):
+            if search_term and search_term not in svc['id'].lower():
+                continue
+            
+            # Get type description
+            svc_type = svc.get('type', '')
+            type_desc = type_names.get(svc_type, f'Type {svc_type}')
+            
+            # Format port display
+            port1 = svc.get('port1', '') or svc.get('port_low', '')
+            port2 = svc.get('port2', '') or svc.get('port_high', '')
+            
+            port_desc = f"{port1}"
+            if port2 and port2 != port1:
+                port_desc = f"{port1}-{port2}"
+            
+            self.tree.insert('', 'end', text=idx,
+                           values=(svc['id'], svc.get('protocol', ''),
+                                 port1, port2, type_desc))
+    
+    def filter_services(self):
+        """Filter services based on search term."""
+        self.load_services()
+    
+    def add_service(self):
+        """Add a new service object."""
+        dialog = ServiceDialog(self.window, "Add Service Object", None)
+        self.window.wait_window(dialog.dialog)
+        
+        if dialog.result:
+            max_idx = max([int(k) for k in self.services.keys() if k.isdigit()] + [0])
+            new_idx = str(max_idx + 1)
+            
+            # Convert protocol name to number
+            protocol_numbers = {
+                'TCP': '6',
+                'UDP': '17',
+                'ICMP': '1',
+                'GRE': '47',
+                'ESP': '50',
+                'AH': '51',
+                'Any': '0',
+            }
+            ip_type = protocol_numbers.get(dialog.result['protocol'], '6')
+            
+            self.services[new_idx] = {
+                'index': new_idx,
+                'id': dialog.result['name'],
+                'type': '1',  # Service type
+                'ip_type': ip_type,
+                'protocol': dialog.result['protocol'],
+                'port1': dialog.result['port_low'],
+                'port2': dialog.result['port_high'],
+                'port_low': dialog.result['port_low'],
+                'port_high': dialog.result['port_high'],
+            }
+            
+            self.load_services()
+            self.mark_modified()
+    
+    def edit_service(self):
+        """Edit selected service object."""
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a service to edit")
+            return
+        
+        idx = self.tree.item(selection[0])['text']
+        svc = self.services[idx]
+        
+        dialog = ServiceDialog(self.window, "Edit Service Object", svc)
+        self.window.wait_window(dialog.dialog)
+        
+        if dialog.result:
+            # Convert protocol name to number
+            protocol_numbers = {
+                'TCP': '6',
+                'UDP': '17',
+                'ICMP': '1',
+                'GRE': '47',
+                'ESP': '50',
+                'AH': '51',
+                'Any': '0',
+            }
+            ip_type = protocol_numbers.get(dialog.result['protocol'], svc.get('ip_type', '6'))
+            
+            self.services[idx].update({
+                'id': dialog.result['name'],
+                'ip_type': ip_type,
+                'protocol': dialog.result['protocol'],
+                'port1': dialog.result['port_low'],
+                'port2': dialog.result['port_high'],
+                'port_low': dialog.result['port_low'],
+                'port_high': dialog.result['port_high'],
+            })
+            
+            self.load_services()
+            self.mark_modified()
+    
+    def delete_service(self):
+        """Delete selected service object."""
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a service to delete")
+            return
+        
+        idx = self.tree.item(selection[0])['text']
+        svc = self.services[idx]
+        
+        if messagebox.askyesno("Confirm Delete", 
+                              f"Delete service object '{svc['id']}'?\n\nThis cannot be undone."):
+            del self.services[idx]
+            self.load_services()
+            self.mark_modified()
+    
+    def save_changes(self):
+        """Save changes back to config.
+        
+        Maps service object fields back to SonicWall .exp format:
+        - svcObjId_X: Service name
+        - svcObjType_X: Object type (1=Service, 2=Group)
+        - svcObjIpType_X: IP Protocol number
+        - svcObjPort1_X: Start port
+        - svcObjPort2_X: End port
+        """
+        # Protocol name to number mapping
+        protocol_numbers = {
+            'TCP': '6',
+            'UDP': '17',
+            'ICMP': '1',
+            'GRE': '47',
+            'ESP': '50',
+            'AH': '51',
+            'Any': '0',
+        }
+        
+        for idx, svc in self.services.items():
+            self.config_data[f'svcObjId_{idx}'] = svc['id']
+            
+            # Convert protocol name back to number if needed
+            protocol = svc.get('protocol', '')
+            if protocol in protocol_numbers:
+                ip_type = protocol_numbers[protocol]
+            elif svc.get('ip_type'):
+                ip_type = svc['ip_type']
+            else:
+                ip_type = '6'  # Default to TCP
+            
+            self.config_data[f'svcObjIpType_{idx}'] = ip_type
+            self.config_data[f'svcObjPort1_{idx}'] = svc.get('port1', '') or svc.get('port_low', '')
+            self.config_data[f'svcObjPort2_{idx}'] = svc.get('port2', '') or svc.get('port_high', '')
+            self.config_data[f'svcObjType_{idx}'] = svc.get('type', '1')
+        
+        messagebox.showinfo("Success", "Service objects saved successfully!")
+        self.modified = False
+        self.window.title(self.window.title().replace(" - Modified", ""))
+
+
+class ServiceDialog:
+    """Dialog for adding/editing service objects."""
+    
+    def __init__(self, parent, title, service_data):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(title)
+        self.dialog.geometry("450x300")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        self.result = None
+        self.service_data = service_data or {}
+        
+        self.create_widgets()
+        
+        # Center dialog
+        self.dialog.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() - self.dialog.winfo_width()) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - self.dialog.winfo_height()) // 2
+        self.dialog.geometry(f"+{x}+{y}")
+    
+    def create_widgets(self):
+        """Create dialog widgets."""
+        form_frame = ttk.Frame(self.dialog, padding="10")
+        form_frame.pack(fill=tk.BOTH, expand=True)
+        
+        row = 0
+        
+        # Name
+        ttk.Label(form_frame, text="Name:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.name_var = tk.StringVar(value=self.service_data.get('id', ''))
+        ttk.Entry(form_frame, textvariable=self.name_var, width=35).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # Protocol
+        ttk.Label(form_frame, text="Protocol:").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.protocol_var = tk.StringVar(value=self.service_data.get('protocol', 'TCP'))
+        protocol_combo = ttk.Combobox(form_frame, textvariable=self.protocol_var, width=33)
+        protocol_combo['values'] = ('TCP', 'UDP', 'ICMP', 'IP')
+        protocol_combo.grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # Port Low
+        ttk.Label(form_frame, text="Port (or Port Low):").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.port_low_var = tk.StringVar(value=self.service_data.get('port_low', ''))
+        ttk.Entry(form_frame, textvariable=self.port_low_var, width=35).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        # Port High
+        ttk.Label(form_frame, text="Port High (optional):").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.port_high_var = tk.StringVar(value=self.service_data.get('port_high', ''))
+        ttk.Entry(form_frame, textvariable=self.port_high_var, width=35).grid(row=row, column=1, pady=5, sticky=tk.EW)
+        row += 1
+        
+        form_frame.columnconfigure(1, weight=1)
+        
+        # Help
+        help_frame = ttk.LabelFrame(self.dialog, text="Examples", padding="10")
+        help_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        help_text = """Single port: Port = 80, Port High = (empty or same)
+Port range: Port = 8000, Port High = 8999
+Well-known: HTTP=80, HTTPS=443, SSH=22, DNS=53"""
+        
+        ttk.Label(help_frame, text=help_text, justify=tk.LEFT).pack()
+        
+        # Buttons
+        button_frame = ttk.Frame(self.dialog, padding="10")
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Save", command=self.save).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT)
+    
+    def save(self):
+        """Save the service object."""
+        name = self.name_var.get().strip()
+        
+        if not name:
+            messagebox.showerror("Validation Error", "Name is required")
+            return
+        
+        port_high = self.port_high_var.get().strip()
+        if not port_high:
+            port_high = self.port_low_var.get().strip()
+        
+        self.result = {
+            'name': name,
+            'protocol': self.protocol_var.get(),
+            'port_low': self.port_low_var.get(),
+            'port_high': port_high,
+        }
+        
+        self.dialog.destroy()
+
+
+class SonicWallConverterCompleteGUI:
     """Complete GUI with all configuration editors."""
     
     def __init__(self, root):
@@ -1108,6 +2418,10 @@ class AddressObjectEditor(ConfigEditor):
         # Row 2: Groups
         ttk.Button(editors_frame, text="📁 Address Groups", command=self.open_address_groups, width=22).grid(row=2, column=0, padx=3, pady=2)
         ttk.Button(editors_frame, text="📁 Service Groups", command=self.open_service_groups, width=22).grid(row=2, column=1, padx=3, pady=2)
+        ttk.Button(editors_frame, text="🌐 Interfaces", command=self.open_interface_editor, width=22).grid(row=2, column=2, padx=3, pady=2)
+        
+        # Row 3: Network Configuration  
+        ttk.Button(editors_frame, text="🏷️ VLANs", command=self.open_vlan_editor, width=22).grid(row=3, column=0, padx=3, pady=2)
         
         # Status area
         status_frame = ttk.LabelFrame(self.root, text="Status / Output", padding="10")
@@ -1367,6 +2681,22 @@ class AddressObjectEditor(ConfigEditor):
             return
         
         ServiceGroupEditor(self.root, self.config)
+    
+    def open_interface_editor(self):
+        """Open interface editor."""
+        if not self.config:
+            messagebox.showerror("Error", "Please load a configuration file first")
+            return
+        
+        InterfaceEditor(self.root, self.config)
+    
+    def open_vlan_editor(self):
+        """Open VLAN editor."""
+        if not self.config:
+            messagebox.showerror("Error", "Please load a configuration file first")
+            return
+        
+        VLANEditor(self.root, self.config)
 
 
 def main():
