@@ -322,31 +322,95 @@ class IPFIXCollector:
         """Enrich flow with derived fields and identity data"""
         # Add protocol name
         if 'protocol' in flow:
-            flow['protocol_name'] = get_protocol_name(flow['protocol'])
+            if isinstance(flow['protocol'], int):
+                flow['protocol_name'] = get_protocol_name(flow['protocol'])
+            elif isinstance(flow['protocol'], str) and flow['protocol'].isdigit():
+                flow['protocol_name'] = get_protocol_name(int(flow['protocol']))
         
         # Decode TCP flags to readable format
         if 'tcp_flags' in flow and isinstance(flow['tcp_flags'], int):
             flow['tcp_flags_str'] = decode_tcp_flags(flow['tcp_flags'])
         
-        # Calculate totals
-        bytes_in = flow.get('bytes_in', 0) or 0
-        bytes_out = flow.get('bytes_out', 0) or 0
+        # Calculate bytes_in from various possible fields
+        bytes_in = 0
+        for field in ['bytes_in', 'init_bytes_total', 'initiator_octets']:
+            if field in flow and flow[field]:
+                bytes_in = flow[field]
+                break
+        flow['bytes_in'] = bytes_in
+        
+        # Calculate bytes_out from various possible fields
+        bytes_out = 0
+        for field in ['bytes_out', 'resp_bytes_total', 'responder_octets']:
+            if field in flow and flow[field]:
+                bytes_out = flow[field]
+                break
+        flow['bytes_out'] = bytes_out
+        
+        # Calculate total bytes
         flow['bytes_total'] = bytes_in + bytes_out
         
-        packets_in = flow.get('packets_in', 0) or 0
-        packets_out = flow.get('packets_out', 0) or 0
+        # Calculate packets_in from various possible fields
+        packets_in = 0
+        for field in ['packets_in', 'init_packets_total']:
+            if field in flow and flow[field]:
+                packets_in = flow[field]
+                break
+        flow['packets_in'] = packets_in
+        
+        # Calculate packets_out from various possible fields
+        packets_out = 0
+        for field in ['packets_out', 'resp_packets_total']:
+            if field in flow and flow[field]:
+                packets_out = flow[field]
+                break
+        flow['packets_out'] = packets_out
+        
+        # Calculate total packets
         flow['packets_total'] = packets_in + packets_out
         
         # Calculate flow duration from various timestamp fields
         if 'flow_start_ms' in flow and 'flow_end_ms' in flow:
-            duration = flow['flow_end_ms'] - flow['flow_start_ms']
-            flow['flow_duration_ms'] = max(0, duration)
+            try:
+                duration = int(flow['flow_end_ms']) - int(flow['flow_start_ms'])
+                flow['flow_duration_ms'] = max(0, duration)
+            except (ValueError, TypeError):
+                pass
+        elif 'flow_start_sec' in flow and 'flow_end_sec' in flow:
+            try:
+                duration = (int(flow['flow_end_sec']) - int(flow['flow_start_sec'])) * 1000
+                flow['flow_duration_ms'] = max(0, duration)
+            except (ValueError, TypeError):
+                pass
         elif 'flow_start' in flow and 'flow_end' in flow:
-            duration = (flow['flow_end'] - flow['flow_start']) * 1000
-            flow['flow_duration_ms'] = max(0, duration)
+            try:
+                duration = (int(flow['flow_end']) - int(flow['flow_start'])) * 1000
+                flow['flow_duration_ms'] = max(0, duration)
+            except (ValueError, TypeError):
+                pass
         elif 'first_switched' in flow and 'last_switched' in flow:
-            duration = flow['last_switched'] - flow['first_switched']
-            flow['flow_duration_ms'] = max(0, duration)
+            try:
+                duration = int(flow['last_switched']) - int(flow['first_switched'])
+                flow['flow_duration_ms'] = max(0, duration)
+            except (ValueError, TypeError):
+                pass
+        elif 'flow_duration' in flow:
+            flow['flow_duration_ms'] = flow['flow_duration']
+        
+        # Convert IP integer fields to dotted notation if present
+        if 'src_ip_int' in flow and 'src_ip' not in flow:
+            try:
+                ip_int = int(flow['src_ip_int'])
+                flow['src_ip'] = f"{(ip_int >> 24) & 0xFF}.{(ip_int >> 16) & 0xFF}.{(ip_int >> 8) & 0xFF}.{ip_int & 0xFF}"
+            except (ValueError, TypeError):
+                pass
+        
+        if 'dst_ip_int' in flow and 'dst_ip' not in flow:
+            try:
+                ip_int = int(flow['dst_ip_int'])
+                flow['dst_ip'] = f"{(ip_int >> 24) & 0xFF}.{(ip_int >> 16) & 0xFF}.{(ip_int >> 8) & 0xFF}.{ip_int & 0xFF}"
+            except (ValueError, TypeError):
+                pass
         
         # Enrich with identity data from source IP
         if 'src_ip' in flow:
@@ -357,8 +421,10 @@ class IPFIXCollector:
                 flow['src_department'] = identity.get('department')
                 flow['src_location'] = identity.get('location')
                 # Also set generic user fields for backward compatibility
-                flow['user_id'] = identity.get('user_id')
-                flow['user_name'] = identity.get('user_name')
+                if not flow.get('user_id'):
+                    flow['user_id'] = identity.get('user_id')
+                if not flow.get('user_name'):
+                    flow['user_name'] = identity.get('user_name')
         
         # Enrich with identity data from destination IP
         if 'dst_ip' in flow:

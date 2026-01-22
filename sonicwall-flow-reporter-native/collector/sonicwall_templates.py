@@ -498,11 +498,25 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     4: FieldDefinition('sw_application_super_category', decode_string, 'Application super category'),
     5: FieldDefinition('sw_application_risk', decode_uint8, 'Application risk level'),
     
+    # Byte/Packet counters (SonicWall specific)
+    6: FieldDefinition('bytes_in', decode_uint64, 'Initiator bytes'),
+    7: FieldDefinition('bytes_out', decode_uint64, 'Responder bytes'),
+    8: FieldDefinition('packets_in', decode_uint64, 'Initiator packets'),
+    9: FieldDefinition('packets_out', decode_uint64, 'Responder packets'),
+    
     # User identification
     10: FieldDefinition('user_name', decode_string, 'User name'),
     11: FieldDefinition('user_domain', decode_string, 'User domain'),
     12: FieldDefinition('user_group', decode_string, 'User group'),
     13: FieldDefinition('user_ip', decode_ipv4, 'User IP address'),
+    
+    # Connection timing
+    14: FieldDefinition('flow_start_ms', decode_uint64, 'Flow start milliseconds'),
+    15: FieldDefinition('flow_end_ms', decode_uint64, 'Flow end milliseconds'),
+    16: FieldDefinition('flow_duration', decode_uint64, 'Flow duration milliseconds'),
+    17: FieldDefinition('conn_start_time', decode_uint64, 'Connection start time'),
+    18: FieldDefinition('conn_duration', decode_uint64, 'Connection duration'),
+    19: FieldDefinition('idle_timeout', decode_uint32, 'Idle timeout'),
     
     # Security/Rule
     20: FieldDefinition('rule_id', decode_uint32, 'Rule ID'),
@@ -511,11 +525,19 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     23: FieldDefinition('zone_dst', decode_string, 'Destination zone'),
     24: FieldDefinition('policy_id', decode_uint32, 'Policy ID'),
     25: FieldDefinition('policy_name', decode_string, 'Policy name'),
+    26: FieldDefinition('action', decode_string, 'Firewall action'),
+    27: FieldDefinition('src_user', decode_string, 'Source user'),
+    28: FieldDefinition('dst_user', decode_string, 'Destination user'),
+    29: FieldDefinition('interface_in', decode_string, 'Input interface'),
     
     # Connection details
     30: FieldDefinition('connection_id', decode_uint64, 'Connection ID'),
     31: FieldDefinition('session_id', decode_uint64, 'Session ID'),
     32: FieldDefinition('connection_state', decode_uint8, 'Connection state'),
+    33: FieldDefinition('connection_flags', decode_uint32, 'Connection flags'),
+    
+    # Network
+    39: FieldDefinition('vlan_id', decode_uint16, 'VLAN ID'),
     
     # Threat information
     40: FieldDefinition('threat_name', decode_string, 'Threat name'),
@@ -524,6 +546,10 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     43: FieldDefinition('threat_id', decode_uint32, 'Threat ID'),
     44: FieldDefinition('antivirus_status', decode_uint8, 'Antivirus status'),
     45: FieldDefinition('ips_alert', decode_string, 'IPS alert'),
+    46: FieldDefinition('interface_out', decode_string, 'Output interface'),
+    47: FieldDefinition('src_port', decode_uint16, 'Source port'),
+    48: FieldDefinition('dst_port', decode_uint16, 'Destination port'),
+    49: FieldDefinition('protocol', decode_string, 'Protocol name'),
     
     # URL/Content
     50: FieldDefinition('url_host', decode_string, 'URL hostname'),
@@ -531,10 +557,24 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     52: FieldDefinition('content_type', decode_string, 'Content type'),
     53: FieldDefinition('referer', decode_string, 'HTTP referer'),
     54: FieldDefinition('user_agent', decode_string, 'HTTP user agent'),
+    55: FieldDefinition('http_method', decode_uint8, 'HTTP method'),
+    56: FieldDefinition('http_status', decode_string, 'HTTP status'),
+    57: FieldDefinition('http_resp_code', decode_uint16, 'HTTP response code'),
+    
+    # Additional network info
+    59: FieldDefinition('dns_query', decode_string, 'DNS query name'),
     
     # Interface names
     60: FieldDefinition('interface_in_name', decode_string, 'Input interface name'),
     61: FieldDefinition('interface_out_name', decode_string, 'Output interface name'),
+    62: FieldDefinition('src_zone_id', decode_uint32, 'Source zone ID'),
+    63: FieldDefinition('src_zone_name', decode_string, 'Source zone name'),
+    64: FieldDefinition('dst_zone_id', decode_uint32, 'Destination zone ID'),
+    65: FieldDefinition('dst_zone_type', decode_uint32, 'Destination zone type'),
+    66: FieldDefinition('dst_zone_name', decode_string, 'Destination zone name'),
+    67: FieldDefinition('nat_type', decode_string, 'NAT type'),
+    68: FieldDefinition('nat_src_ip', decode_uint32, 'NAT source IP'),
+    69: FieldDefinition('nat_dst_ip', decode_uint32, 'NAT destination IP'),
     
     # VPN
     70: FieldDefinition('vpn_policy_name', decode_string, 'VPN policy name'),
@@ -552,6 +592,95 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     # GeoIP
     100: FieldDefinition('geo_src_country', decode_string, 'Source country'),
     101: FieldDefinition('geo_dst_country', decode_string, 'Destination country'),
+    102: FieldDefinition('geo_src_region', decode_uint32, 'Source region'),
+    103: FieldDefinition('geo_dst_region', decode_uint32, 'Destination region'),
+    104: FieldDefinition('src_ip_int', decode_uint32, 'Source IP integer'),
+    105: FieldDefinition('dst_ip_int', decode_uint32, 'Destination IP integer'),
+    106: FieldDefinition('src_prefix_len', decode_uint8, 'Source prefix length'),
+    107: FieldDefinition('dst_prefix_len', decode_uint8, 'Destination prefix length'),
+    108: FieldDefinition('next_hop_int', decode_uint32, 'Next hop integer'),
+    
+    # Extended counters
+    111: FieldDefinition('init_bytes_total', decode_uint64, 'Initiator total bytes'),
+    112: FieldDefinition('resp_bytes_total', decode_uint64, 'Responder total bytes'),
+    113: FieldDefinition('init_packets_total', decode_uint64, 'Initiator total packets'),
+    114: FieldDefinition('resp_packets_total', decode_uint64, 'Responder total packets'),
+    115: FieldDefinition('tcp_flags', decode_uint8, 'TCP flags'),
+    116: FieldDefinition('tos', decode_uint8, 'Type of service'),
+    117: FieldDefinition('application', decode_string, 'Application'),
+    118: FieldDefinition('app_category_id', decode_uint32, 'App category ID'),
+    119: FieldDefinition('app_id', decode_uint32, 'Application ID'),
+    120: FieldDefinition('src_as', decode_uint32, 'Source AS'),
+    121: FieldDefinition('dst_as', decode_uint32, 'Destination AS'),
+    122: FieldDefinition('flow_id', decode_uint64, 'Flow ID'),
+    123: FieldDefinition('flow_start_sec', decode_uint32, 'Flow start seconds'),
+    124: FieldDefinition('flow_end_sec', decode_uint32, 'Flow end seconds'),
+    126: FieldDefinition('sampling_interval', decode_uint32, 'Sampling interval'),
+    127: FieldDefinition('sampling_algorithm', decode_uint8, 'Sampling algorithm'),
+    
+    # SSL/TLS
+    134: FieldDefinition('ssl_cn', decode_string, 'SSL common name'),
+    135: FieldDefinition('ssl_version', decode_uint8, 'SSL version'),
+    136: FieldDefinition('ssl_cipher', decode_uint32, 'SSL cipher'),
+    137: FieldDefinition('ssl_session_id', decode_uint64, 'SSL session ID'),
+    
+    # Extended fields
+    145: FieldDefinition('flow_flags', decode_uint32, 'Flow flags'),
+    146: FieldDefinition('flow_type', decode_uint8, 'Flow type'),
+    147: FieldDefinition('biflow_direction', decode_uint8, 'Biflow direction'),
+    148: FieldDefinition('flow_reason', decode_uint8, 'Flow end reason'),
+    149: FieldDefinition('exporter_id', decode_uint32, 'Exporter ID'),
+    150: FieldDefinition('observation_domain', decode_uint32, 'Observation domain'),
+    151: FieldDefinition('observation_point', decode_uint32, 'Observation point'),
+    152: FieldDefinition('selector_id', decode_uint32, 'Selector ID'),
+    153: FieldDefinition('selector_name', decode_string, 'Selector name'),
+    154: FieldDefinition('template_name', decode_string, 'Template name'),
+    
+    # More counters
+    167: FieldDefinition('dropped_packets', decode_uint64, 'Dropped packets'),
+    168: FieldDefinition('dropped_bytes', decode_uint64, 'Dropped bytes'),
+    169: FieldDefinition('consumed_packets', decode_uint64, 'Consumed packets'),
+    170: FieldDefinition('consumed_bytes', decode_uint64, 'Consumed bytes'),
+    171: FieldDefinition('flow_count', decode_uint32, 'Flow count'),
+    172: FieldDefinition('avg_pkt_size', decode_uint16, 'Average packet size'),
+    173: FieldDefinition('min_pkt_size', decode_uint16, 'Minimum packet size'),
+    174: FieldDefinition('max_pkt_size', decode_string, 'Maximum packet size'),
+    175: FieldDefinition('avg_ttl', decode_uint8, 'Average TTL'),
+    176: FieldDefinition('min_ttl_val', decode_uint8, 'Minimum TTL'),
+    177: FieldDefinition('max_ttl', decode_string, 'Maximum TTL'),
+    179: FieldDefinition('fw_rule_id', decode_uint32, 'Firewall rule ID'),
+    180: FieldDefinition('fw_policy_id', decode_uint32, 'Firewall policy ID'),
+    181: FieldDefinition('fw_event', decode_uint8, 'Firewall event'),
+    182: FieldDefinition('ingress_acl_id', decode_uint32, 'Ingress ACL ID'),
+    183: FieldDefinition('egress_acl_id', decode_uint32, 'Egress ACL ID'),
+    
+    # QoS
+    190: FieldDefinition('qos_class', decode_uint8, 'QoS class'),
+    191: FieldDefinition('qos_priority', decode_uint8, 'QoS priority'),
+    192: FieldDefinition('qos_dscp', decode_uint8, 'QoS DSCP'),
+    193: FieldDefinition('qos_marking', decode_uint8, 'QoS marking'),
+    194: FieldDefinition('queue_id', decode_uint32, 'Queue ID'),
+    
+    # Extended info
+    260: FieldDefinition('vxlan_id', decode_uint32, 'VXLAN ID'),
+    261: FieldDefinition('gre_key', decode_string, 'GRE key'),
+    262: FieldDefinition('mpls_label', decode_uint32, 'MPLS label'),
+    263: FieldDefinition('mpls_exp', decode_uint8, 'MPLS exp'),
+    264: FieldDefinition('mpls_ttl', decode_uint8, 'MPLS TTL'),
+    265: FieldDefinition('l2tp_session', decode_uint32, 'L2TP session'),
+    
+    # Additional
+    302: FieldDefinition('category', decode_string, 'Category'),
+    305: FieldDefinition('rating_service_id', decode_uint32, 'Rating service ID'),
+    306: FieldDefinition('rating_category', decode_uint32, 'Rating category'),
+    307: FieldDefinition('content_flags', decode_uint32, 'Content flags'),
+    308: FieldDefinition('reputation_score', decode_int32, 'Reputation score'),
+    309: FieldDefinition('confidence', decode_uint8, 'Confidence'),
+    310: FieldDefinition('priority', decode_uint8, 'Priority'),
+    311: FieldDefinition('severity', decode_uint8, 'Severity'),
+    312: FieldDefinition('signature', decode_string, 'Signature'),
+    314: FieldDefinition('event_id', decode_uint64, 'Event ID'),
+    315: FieldDefinition('event_type', decode_uint32, 'Event type'),
 }
 
 

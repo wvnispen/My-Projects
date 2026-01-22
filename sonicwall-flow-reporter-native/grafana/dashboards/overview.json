@@ -1,7 +1,5 @@
 {
-  "annotations": {
-    "list": []
-  },
+  "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -23,12 +21,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "short"
         },
         "overrides": []
@@ -40,14 +33,9 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["sum"],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
         "textMode": "auto"
       },
-      "pluginVersion": "10.2.0",
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
@@ -69,12 +57,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "blue", "value": null }
-            ]
-          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
           "unit": "decbytes"
         },
         "overrides": []
@@ -86,11 +69,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["sum"],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "targets": [
@@ -114,12 +93,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "purple", "value": null }
-            ]
-          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
           "unit": "short"
         },
         "overrides": []
@@ -131,11 +105,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["sum"],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "targets": [
@@ -144,7 +114,7 @@
           "bucketAggs": [
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
-          "metrics": [{ "type": "cardinality", "field": "src_ip.keyword", "id": "1" }],
+          "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }],
           "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
@@ -159,12 +129,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "orange", "value": null }
-            ]
-          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
           "unit": "short"
         },
         "overrides": []
@@ -176,11 +141,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["sum"],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "targets": [
@@ -189,7 +150,7 @@
           "bucketAggs": [
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
-          "metrics": [{ "type": "cardinality", "field": "user_name.keyword", "id": "1" }],
+          "metrics": [{ "type": "cardinality", "field": "user_name", "id": "1" }],
           "query": "_exists_:user_name",
           "refId": "A",
           "timeField": "@timestamp"
@@ -229,21 +190,12 @@
             "stacking": { "group": "A", "mode": "none" }
           },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
-          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "Bps"
         },
         "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Bytes In" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Bytes Out" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
-          }
+          { "matcher": { "id": "byName", "options": "Bytes In" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Bytes Out" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
         ]
       },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
@@ -271,7 +223,7 @@
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
           "metrics": [{ "type": "sum", "field": "bytes_out", "id": "1" }],
-          "query": "_exists_:bytes_out",
+          "query": "*",
           "refId": "B",
           "timeField": "@timestamp"
         }
@@ -294,7 +246,7 @@
           "color": { "mode": "palette-classic" },
           "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
           "mappings": [],
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -311,15 +263,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "user_name.keyword", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
+            { "field": "user_name", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
           ],
-          "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
+          "metrics": [{ "type": "count", "id": "1" }],
           "query": "_exists_:user_name",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Users by Bandwidth",
+      "title": "Top Users by Flow Count",
       "type": "piechart"
     },
     {
@@ -329,7 +281,7 @@
           "color": { "mode": "palette-classic" },
           "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
           "mappings": [],
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -346,15 +298,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "src_ip.keyword", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
+            { "field": "dst_port", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
           ],
-          "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
+          "metrics": [{ "type": "count", "id": "1" }],
           "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Source IPs",
+      "title": "Top Destination Ports",
       "type": "piechart"
     },
     {
@@ -364,7 +316,7 @@
           "color": { "mode": "palette-classic" },
           "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
           "mappings": [],
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -381,15 +333,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "dst_port", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
+            { "field": "sw_application_name.keyword", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
           ],
-          "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
-          "query": "*",
+          "metrics": [{ "type": "count", "id": "1" }],
+          "query": "_exists_:sw_application_name",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Destination Ports",
+      "title": "Top Applications",
       "type": "piechart"
     },
     {
@@ -416,20 +368,19 @@
         "cellHeight": "sm",
         "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "Total Bytes" }]
+        "sortBy": [{ "desc": true, "displayName": "Flow Count" }]
       },
-      "pluginVersion": "10.2.0",
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "user_name.keyword", "type": "terms", "settings": { "size": "50", "order": "desc", "orderBy": "1" }, "id": "3" }
+            { "field": "user_name", "type": "terms", "settings": { "size": "50", "order": "desc", "orderBy": "_count" }, "id": "3" }
           ],
           "metrics": [
+            { "type": "count", "id": "2" },
             { "type": "sum", "field": "bytes_total", "id": "1" },
             { "type": "sum", "field": "bytes_in", "id": "4" },
-            { "type": "sum", "field": "bytes_out", "id": "5" },
-            { "type": "count", "id": "2" }
+            { "type": "sum", "field": "bytes_out", "id": "5" }
           ],
           "query": "_exists_:user_name",
           "refId": "A",
@@ -442,11 +393,11 @@
           "id": "organize",
           "options": {
             "renameByName": {
-              "user_name.keyword": "User",
+              "user_name": "User",
+              "Count": "Flow Count",
               "Sum bytes_total": "Total Bytes",
               "Sum bytes_in": "Bytes In",
-              "Sum bytes_out": "Bytes Out",
-              "Count": "Flow Count"
+              "Sum bytes_out": "Bytes Out"
             }
           }
         }
