@@ -41,7 +41,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["count"],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -51,6 +51,9 @@
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+          "bucketAggs": [
+            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
+          ],
           "metrics": [{ "type": "count", "id": "1" }],
           "query": "*",
           "refId": "A",
@@ -93,6 +96,9 @@
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+          "bucketAggs": [
+            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
+          ],
           "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
           "query": "*",
           "refId": "A",
@@ -126,7 +132,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["count"],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -136,9 +142,9 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "src_ip", "type": "terms", "settings": { "size": "0" }, "id": "2" }
+            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
-          "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }],
+          "metrics": [{ "type": "cardinality", "field": "src_ip.keyword", "id": "1" }],
           "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
@@ -171,7 +177,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["count"],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -180,8 +186,11 @@
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "metrics": [{ "type": "cardinality", "field": "user_name", "id": "1" }],
-          "query": "user_name:*",
+          "bucketAggs": [
+            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
+          ],
+          "metrics": [{ "type": "cardinality", "field": "user_name.keyword", "id": "1" }],
+          "query": "_exists_:user_name",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -226,7 +235,16 @@
           },
           "unit": "Bps"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Bytes In" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Bytes Out" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          }
+        ]
       },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
       "id": 5,
@@ -253,7 +271,7 @@
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
           "metrics": [{ "type": "sum", "field": "bytes_out", "id": "1" }],
-          "query": "*",
+          "query": "_exists_:bytes_out",
           "refId": "B",
           "timeField": "@timestamp"
         }
@@ -293,10 +311,10 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "user_name", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
+            { "field": "user_name.keyword", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
           ],
           "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
-          "query": "user_name:*",
+          "query": "_exists_:user_name",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -328,7 +346,7 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
+            { "field": "src_ip.keyword", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
           ],
           "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
           "query": "*",
@@ -363,15 +381,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "application_name", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
+            { "field": "dst_port", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
           ],
           "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
-          "query": "application_name:*",
+          "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Applications",
+      "title": "Top Destination Ports",
       "type": "piechart"
     },
     {
@@ -387,9 +405,9 @@
       "fieldConfig": {
         "defaults": { "mappings": [] },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "bytes_total" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
-          { "matcher": { "id": "byName", "options": "bytes_in" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
-          { "matcher": { "id": "byName", "options": "bytes_out" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
+          { "matcher": { "id": "byName", "options": "Bytes In" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
+          { "matcher": { "id": "byName", "options": "Bytes Out" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
         ]
       },
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
@@ -398,14 +416,14 @@
         "cellHeight": "sm",
         "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "bytes_total" }]
+        "sortBy": [{ "desc": true, "displayName": "Total Bytes" }]
       },
       "pluginVersion": "10.2.0",
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "user_name", "type": "terms", "settings": { "size": "50", "order": "desc", "orderBy": "1" }, "id": "3" }
+            { "field": "user_name.keyword", "type": "terms", "settings": { "size": "50", "order": "desc", "orderBy": "1" }, "id": "3" }
           ],
           "metrics": [
             { "type": "sum", "field": "bytes_total", "id": "1" },
@@ -413,7 +431,7 @@
             { "type": "sum", "field": "bytes_out", "id": "5" },
             { "type": "count", "id": "2" }
           ],
-          "query": "user_name:*",
+          "query": "_exists_:user_name",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -424,7 +442,7 @@
           "id": "organize",
           "options": {
             "renameByName": {
-              "user_name": "User",
+              "user_name.keyword": "User",
               "Sum bytes_total": "Total Bytes",
               "Sum bytes_in": "Bytes In",
               "Sum bytes_out": "Bytes Out",
@@ -443,7 +461,7 @@
   "templating": {
     "list": [
       {
-        "current": { "selected": false, "text": "Elasticsearch - Flows", "value": "Elasticsearch - Flows" },
+        "current": { "selected": false, "text": "Elasticsearch-Flows", "value": "Elasticsearch-Flows" },
         "hide": 0,
         "includeAll": false,
         "label": "Data Source",
