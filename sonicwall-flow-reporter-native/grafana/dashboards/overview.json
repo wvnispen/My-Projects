@@ -78,7 +78,7 @@
           "bucketAggs": [
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
-          "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }],
+          "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }],
           "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
@@ -105,7 +105,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "reduceOptions": { "calcs": ["max"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "targets": [
@@ -114,13 +114,13 @@
           "bucketAggs": [
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
-          "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }],
+          "metrics": [{ "type": "cardinality", "field": "dst_ip", "id": "1" }],
           "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Unique Source IPs",
+      "title": "Unique Destinations",
       "type": "stat"
     },
     {
@@ -141,7 +141,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "reduceOptions": { "calcs": ["max"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "targets": [
@@ -150,13 +150,13 @@
           "bucketAggs": [
             { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
           ],
-          "metrics": [{ "type": "cardinality", "field": "user_name", "id": "1" }],
-          "query": "_exists_:user_name",
+          "metrics": [{ "type": "cardinality", "field": "rule_id", "id": "1" }],
+          "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Identified Users",
+      "title": "Active Rules",
       "type": "stat"
     },
     {
@@ -191,7 +191,7 @@
           },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
-          "unit": "Bps"
+          "unit": "decbytes"
         },
         "overrides": [
           { "matcher": { "id": "byName", "options": "Bytes In" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
@@ -225,7 +225,8 @@
           "metrics": [{ "type": "sum", "field": "bytes_out", "id": "1" }],
           "query": "*",
           "refId": "B",
-          "timeField": "@timestamp"
+          "timeField": "@timestamp",
+          "hide": false
         }
       ],
       "title": "Bandwidth Over Time",
@@ -246,7 +247,7 @@
           "color": { "mode": "palette-classic" },
           "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
           "mappings": [],
-          "unit": "short"
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -263,15 +264,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "user_name", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
+            { "field": "dst_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
           ],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "_exists_:user_name",
+          "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }],
+          "query": "NOT dst_ip:0.0.0.0",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Users by Flow Count",
+      "title": "Top Destinations by Bandwidth",
       "type": "piechart"
     },
     {
@@ -298,15 +299,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "dst_port", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
+            { "field": "dst_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
           ],
           "metrics": [{ "type": "count", "id": "1" }],
-          "query": "*",
+          "query": "NOT dst_ip:0.0.0.0",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Destination Ports",
+      "title": "Top Destinations by Flow Count",
       "type": "piechart"
     },
     {
@@ -333,15 +334,15 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "sw_application_name.keyword", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
+            { "field": "rule_id", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
           ],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "_exists_:sw_application_name",
+          "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }],
+          "query": "*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Top Applications",
+      "title": "Top Rules by Bandwidth",
       "type": "piechart"
     },
     {
@@ -357,47 +358,87 @@
       "fieldConfig": {
         "defaults": { "mappings": [] },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
-          { "matcher": { "id": "byName", "options": "Bytes In" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
-          { "matcher": { "id": "byName", "options": "Bytes Out" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
         ]
       },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
       "id": 9,
       "options": {
         "cellHeight": "sm",
         "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "Flow Count" }]
+        "sortBy": [{ "desc": true, "displayName": "Bytes" }]
       },
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
           "bucketAggs": [
-            { "field": "user_name", "type": "terms", "settings": { "size": "50", "order": "desc", "orderBy": "_count" }, "id": "3" }
+            { "field": "dst_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }
           ],
           "metrics": [
-            { "type": "count", "id": "2" },
-            { "type": "sum", "field": "bytes_total", "id": "1" },
-            { "type": "sum", "field": "bytes_in", "id": "4" },
-            { "type": "sum", "field": "bytes_out", "id": "5" }
+            { "type": "sum", "field": "consumed_bytes", "id": "1" },
+            { "type": "count", "id": "2" }
           ],
-          "query": "_exists_:user_name",
+          "query": "NOT dst_ip:0.0.0.0",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "User Traffic Summary",
+      "title": "Top Destination IPs",
       "transformations": [
         {
           "id": "organize",
           "options": {
             "renameByName": {
-              "user_name": "User",
-              "Count": "Flow Count",
-              "Sum bytes_total": "Total Bytes",
-              "Sum bytes_in": "Bytes In",
-              "Sum bytes_out": "Bytes Out"
+              "dst_ip": "Destination IP",
+              "Sum consumed_bytes": "Bytes",
+              "Count": "Flows"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "id": 10,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Bytes" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+          "bucketAggs": [
+            { "field": "rule_id", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }
+          ],
+          "metrics": [
+            { "type": "sum", "field": "consumed_bytes", "id": "1" },
+            { "type": "count", "id": "2" }
+          ],
+          "query": "*",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Traffic by Rule ID",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "rule_id": "Rule ID",
+              "Sum consumed_bytes": "Bytes",
+              "Count": "Flows"
             }
           }
         }

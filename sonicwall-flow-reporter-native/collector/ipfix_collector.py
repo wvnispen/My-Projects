@@ -331,42 +331,48 @@ class IPFIXCollector:
         if 'tcp_flags' in flow and isinstance(flow['tcp_flags'], int):
             flow['tcp_flags_str'] = decode_tcp_flags(flow['tcp_flags'])
         
-        # Calculate bytes_in from various possible fields
+        # Calculate bytes from various possible SonicWall fields
+        # Note: SonicWall uses consumed_bytes, or init/resp totals
         bytes_in = 0
-        for field in ['bytes_in', 'init_bytes_total', 'initiator_octets']:
-            if field in flow and flow[field]:
-                bytes_in = flow[field]
-                break
-        flow['bytes_in'] = bytes_in
-        
-        # Calculate bytes_out from various possible fields
         bytes_out = 0
-        for field in ['bytes_out', 'resp_bytes_total', 'responder_octets']:
-            if field in flow and flow[field]:
-                bytes_out = flow[field]
-                break
-        flow['bytes_out'] = bytes_out
         
-        # Calculate total bytes
+        # Try init/resp bytes first (if available)
+        if flow.get('init_bytes_total'):
+            bytes_in = int(flow['init_bytes_total'])
+        if flow.get('resp_bytes_total'):
+            bytes_out = int(flow['resp_bytes_total'])
+        
+        # Fall back to consumed_bytes if no init/resp
+        if bytes_in == 0 and bytes_out == 0:
+            consumed = flow.get('consumed_bytes', 0)
+            if consumed:
+                # SonicWall consumed_bytes is total, split evenly as approximation
+                bytes_in = int(consumed) // 2
+                bytes_out = int(consumed) - bytes_in
+        
+        # Store calculated values
+        flow['bytes_in'] = bytes_in
+        flow['bytes_out'] = bytes_out
         flow['bytes_total'] = bytes_in + bytes_out
         
-        # Calculate packets_in from various possible fields
+        # Calculate packets from various possible fields
         packets_in = 0
-        for field in ['packets_in', 'init_packets_total']:
-            if field in flow and flow[field]:
-                packets_in = flow[field]
-                break
-        flow['packets_in'] = packets_in
-        
-        # Calculate packets_out from various possible fields
         packets_out = 0
-        for field in ['packets_out', 'resp_packets_total']:
-            if field in flow and flow[field]:
-                packets_out = flow[field]
-                break
-        flow['packets_out'] = packets_out
         
-        # Calculate total packets
+        if flow.get('init_packets_total'):
+            packets_in = int(flow['init_packets_total'])
+        if flow.get('resp_packets_total'):
+            packets_out = int(flow['resp_packets_total'])
+        
+        # Fall back to consumed_packets
+        if packets_in == 0 and packets_out == 0:
+            consumed_pkts = flow.get('consumed_packets', 0)
+            if consumed_pkts:
+                packets_in = int(consumed_pkts) // 2
+                packets_out = int(consumed_pkts) - packets_in
+        
+        flow['packets_in'] = packets_in
+        flow['packets_out'] = packets_out
         flow['packets_total'] = packets_in + packets_out
         
         # Calculate flow duration from various timestamp fields

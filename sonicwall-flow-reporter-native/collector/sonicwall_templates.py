@@ -498,11 +498,12 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     4: FieldDefinition('sw_application_super_category', decode_string, 'Application super category'),
     5: FieldDefinition('sw_application_risk', decode_uint8, 'Application risk level'),
     
-    # Byte/Packet counters (SonicWall specific)
-    6: FieldDefinition('bytes_in', decode_uint64, 'Initiator bytes'),
-    7: FieldDefinition('bytes_out', decode_uint64, 'Responder bytes'),
-    8: FieldDefinition('packets_in', decode_uint64, 'Initiator packets'),
-    9: FieldDefinition('packets_out', decode_uint64, 'Responder packets'),
+    # CORRECTED: Fields 6-9 are IP addresses in SonicWall IPFIX, NOT byte counts!
+    # Based on real traffic analysis: field 6 = external destination, field 7 = NAT source
+    6: FieldDefinition('dst_ip', decode_ipv4, 'Destination IPv4 address'),
+    7: FieldDefinition('src_ip', decode_ipv4, 'Source IPv4 address (NAT)'),
+    8: FieldDefinition('dst_port', decode_uint16, 'Destination port'),
+    9: FieldDefinition('src_port', decode_uint16, 'Source port'),
     
     # User identification
     10: FieldDefinition('user_name', decode_string, 'User name'),
