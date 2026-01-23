@@ -1,0 +1,172 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["sonicwall-security"], "title": "Security Reports", "type": "dashboards" }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Flow Summary",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Flows",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Bytes",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_ip" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique Destinations",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "rule_id" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Active Rules",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "panels": [],
+      "title": "Flow Timeline",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "bars", "fillOpacity": 80, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "alias": "Flows", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Flow Rate Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 12 },
+      "id": 102,
+      "panels": [],
+      "title": "Recent Flows",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "consumed_bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 13 },
+      "id": 20,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "@timestamp" }] },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+          "bucketAggs": [],
+          "metrics": [{ "id": "1", "settings": { "size": "100" }, "type": "raw_data" }],
+          "query": "*",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Flow Log (Last 100)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "_id": true, "_index": true, "_type": true },
+            "indexByName": {},
+            "includeByName": { "@timestamp": true, "src_ip": true, "dst_ip": true, "dst_port": true, "rule_id": true, "consumed_bytes": true, "firewall_ip": true },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["sonicwall", "sonicwall-security", "flows"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Elasticsearch-Flows", "value": "Elasticsearch-Flows" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "elasticsearch",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "SonicWall - Flow Explorer",
+  "uid": "swfr-flows",
+  "version": 1,
+  "weekStart": ""
+}

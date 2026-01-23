@@ -1,0 +1,248 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["sonicwall-security"], "title": "Security Reports", "type": "dashboards" }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Security Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Flows",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_in" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Bytes In (Download)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] }, "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_out" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Bytes Out (Upload)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_ip" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique Destinations",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "rule_id" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Active Rules",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "firewall_ip" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Firewalls",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "panels": [],
+      "title": "Bandwidth Over Time",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 30, "gradientMode": "opacity", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 2, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes In" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Bytes Out" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "legend": { "calcs": ["mean", "max", "sum"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "alias": "Bytes In", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_in" }], "query": "*", "refId": "A", "timeField": "@timestamp" },
+        { "alias": "Bytes Out", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_out" }], "query": "*", "refId": "B", "timeField": "@timestamp", "hide": false }
+      ],
+      "title": "Bandwidth Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "panels": [],
+      "title": "Top Destinations",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
+      "id": 20,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "10" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Destinations by Bandwidth",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 15 },
+      "id": 21,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "10" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Rules by Bandwidth",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
+      "id": 22,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_port", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "10" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Destination Ports",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "panels": [],
+      "title": "Detail Tables",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
+      "id": 30,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "25" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }, { "id": "2", "type": "count" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Destination IPs",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_ip": "Destination IP", "Sum consumed_bytes": "Bytes", "Count": "Flows" } } }],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "id": 31,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "25" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }, { "id": "2", "type": "count" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Traffic by Rule",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "rule_id": "Rule ID", "Sum consumed_bytes": "Bytes", "Count": "Flows" } } }],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["sonicwall", "sonicwall-security", "overview"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Elasticsearch-Flows", "value": "Elasticsearch-Flows" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "elasticsearch",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "SonicWall - Security Overview",
+  "uid": "swfr-security-overview",
+  "version": 1,
+  "weekStart": ""
+}

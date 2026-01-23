@@ -376,50 +376,70 @@ EOF
 # STEP 6: Configure Grafana Datasource and Dashboard
 # ============================================================================
 configure_grafana() {
-    echo -e "\n${GREEN}[6/8] Configuring Grafana datasource and dashboard...${NC}"
+    echo -e "\n${GREEN}[6/8] Configuring Grafana datasource and dashboards...${NC}"
     
     GRAFANA_URL="http://127.0.0.1:3000"
     GRAFANA_CREDS="admin:admin"
     
-    # Wait for Grafana API
-    sleep 3
+    # Setup provisioning directories
+    echo "  Setting up Grafana provisioning..."
+    mkdir -p /etc/grafana/provisioning/datasources
+    mkdir -p /etc/grafana/provisioning/dashboards
+    mkdir -p /var/lib/grafana/dashboards
     
-    # Add Elasticsearch datasource
-    echo "  Adding Elasticsearch datasource..."
-    curl -s -X POST "$GRAFANA_URL/api/datasources" \
-        -u "$GRAFANA_CREDS" \
-        -H 'Content-Type: application/json' \
-        -d '{
-            "name": "Elasticsearch-Flows",
-            "type": "elasticsearch",
-            "url": "http://127.0.0.1:9200",
-            "access": "proxy",
-            "database": "flows-*",
-            "isDefault": true,
-            "jsonData": {
-                "timeField": "@timestamp",
-                "esVersion": "9.0.0",
-                "maxConcurrentShardRequests": 5,
-                "logMessageField": "",
-                "logLevelField": ""
-            }
-        }' > /dev/null 2>&1 || echo "  (datasource may already exist)"
+    # Copy datasource provisioning
+    cat > /etc/grafana/provisioning/datasources/sonicwall.yml << 'EOF'
+apiVersion: 1
+
+datasources:
+  - name: Elasticsearch-Flows
+    type: elasticsearch
+    access: proxy
+    url: http://127.0.0.1:9200
+    database: "flows-*"
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: "9.0.0"
+      maxConcurrentShardRequests: 5
+      logMessageField: ""
+      logLevelField: ""
+    isDefault: true
+EOF
     
-    # Copy dashboard if available
-    if [ -f "$INSTALL_DIR/grafana/dashboards/overview.json" ]; then
-        echo "  Importing dashboard..."
-        DASHBOARD_JSON=$(cat "$INSTALL_DIR/grafana/dashboards/overview.json")
-        curl -s -X POST "$GRAFANA_URL/api/dashboards/db" \
-            -u "$GRAFANA_CREDS" \
-            -H 'Content-Type: application/json' \
-            -d "{
-                \"dashboard\": $DASHBOARD_JSON,
-                \"overwrite\": true,
-                \"folderId\": 0
-            }" > /dev/null 2>&1 || echo "  (dashboard import may need manual setup)"
+    # Copy dashboard provisioning
+    cat > /etc/grafana/provisioning/dashboards/sonicwall.yml << 'EOF'
+apiVersion: 1
+
+providers:
+  - name: 'SonicWall Flow Reporter'
+    orgId: 1
+    folder: 'SonicWall'
+    folderUid: 'sonicwall'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+EOF
+    
+    # Copy all dashboard files
+    echo "  Installing dashboards..."
+    if [ -d "$INSTALL_DIR/grafana/dashboards" ]; then
+        cp -f "$INSTALL_DIR/grafana/dashboards/"*.json /var/lib/grafana/dashboards/
+        chown -R grafana:grafana /var/lib/grafana/dashboards/
     fi
     
-    echo -e "${GREEN}Grafana configured${NC}"
+    # Set permissions
+    chown -R root:grafana /etc/grafana/provisioning/
+    chmod -R 640 /etc/grafana/provisioning/datasources/*
+    chmod -R 640 /etc/grafana/provisioning/dashboards/*
+    
+    # Restart Grafana to load provisioning
+    systemctl restart grafana-server
+    sleep 3
+    
+    echo -e "${GREEN}Grafana configured with provisioning${NC}"
 }
 
 # ============================================================================

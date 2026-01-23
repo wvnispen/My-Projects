@@ -1,6 +1,8 @@
 # SonicWall Flow Reporter - Native Linux Installation
 
-**Version 1.2.4**
+**Version 1.2.7**
+
+Real-time network flow monitoring and reporting for SonicWall firewalls using IPFIX/NetFlow.
 
 Real-time IPFIX/NetFlow reporting for SonicWall firewalls running natively on Ubuntu 24.04 LTS (no Docker required).
 
