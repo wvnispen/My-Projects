@@ -1,0 +1,241 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["sonicwall-security"], "title": "Security Reports", "type": "dashboards" }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Sites Summary",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "dst_ip", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique Sites/IPs Visited",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Bandwidth",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Connections",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "dst_port", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique Ports Used",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "panels": [],
+      "title": "Top Sites by Traffic",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Sites by Bandwidth",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
+      "id": 11,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "_count" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Sites by Connection Count",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "id": 102,
+      "panels": [],
+      "title": "Top Services (Ports)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [
+          { "options": { "443": { "text": "HTTPS (443)" } }, "type": "value" },
+          { "options": { "80": { "text": "HTTP (80)" } }, "type": "value" },
+          { "options": { "53": { "text": "DNS (53)" } }, "type": "value" },
+          { "options": { "22": { "text": "SSH (22)" } }, "type": "value" },
+          { "options": { "3389": { "text": "RDP (3389)" } }, "type": "value" },
+          { "options": { "8080": { "text": "HTTP-Alt (8080)" } }, "type": "value" },
+          { "options": { "853": { "text": "DNS-TLS (853)" } }, "type": "value" },
+          { "options": { "8883": { "text": "MQTT-TLS (8883)" } }, "type": "value" }
+        ], "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+      "id": 20,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_port", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "_count" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Destination Ports (Services)",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [
+          { "options": { "443": { "text": "HTTPS" } }, "type": "value" },
+          { "options": { "80": { "text": "HTTP" } }, "type": "value" },
+          { "options": { "53": { "text": "DNS" } }, "type": "value" },
+          { "options": { "22": { "text": "SSH" } }, "type": "value" },
+          { "options": { "3389": { "text": "RDP" } }, "type": "value" }
+        ] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+      "id": 21,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Connections" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_port", "type": "terms", "settings": { "size": "20", "order": "desc", "orderBy": "_count" }, "id": "3" }], "metrics": [{ "type": "count", "id": "2" }, { "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Port Details",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_port": "Port", "Count": "Connections", "Sum consumed_bytes": "Bytes" } } }],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 103,
+      "panels": [],
+      "title": "Sites Over Time",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "bars", "fillOpacity": 80, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "normal" } },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "id": 30,
+      "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "3" }, { "field": "dst_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Sites Traffic Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 104,
+      "panels": [],
+      "title": "Detailed Site List",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] },
+          { "matcher": { "id": "byName", "options": "Download" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
+          { "matcher": { "id": "byName", "options": "Upload" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 35 },
+      "id": 40,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Total Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "100", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }, { "type": "sum", "field": "bytes_in", "id": "4" }, { "type": "sum", "field": "bytes_out", "id": "5" }, { "type": "count", "id": "2" }, { "type": "cardinality", "field": "user_name", "id": "6" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "All Sites - Complete List",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_ip": "Site (IP)", "Sum consumed_bytes": "Total Bytes", "Sum bytes_in": "Download", "Sum bytes_out": "Upload", "Count": "Connections", "Unique count user_name": "Users" } } }],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["sonicwall", "sonicwall-security", "urls", "sites"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Elasticsearch-Flows", "value": "Elasticsearch-Flows" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "elasticsearch",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "SonicWall - Top Sites & URLs",
+  "uid": "swfr-sites",
+  "version": 1,
+  "weekStart": ""
+}
