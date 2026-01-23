@@ -320,6 +320,41 @@ class IPFIXCollector:
     
     def _enrich_flow(self, flow: Dict[str, Any]):
         """Enrich flow with derived fields and identity data"""
+        
+        # CRITICAL: Use internal_src_ip as the real source IP for user identification
+        # Field 5 from SonicWall contains the pre-NAT internal client IP
+        if 'internal_src_ip' in flow:
+            # This is the REAL client IP - use it as src_ip
+            real_client_ip = flow['internal_src_ip']
+            # Keep nat_src_ip as the WAN IP
+            if 'nat_src_ip' in flow:
+                flow['wan_ip'] = flow['nat_src_ip']
+            # Override src_ip with the real internal IP
+            if real_client_ip and real_client_ip != '0.0.0.0':
+                flow['src_ip'] = real_client_ip
+        
+        # Map field names for backward compatibility
+        if 'app_name' in flow and flow['app_name']:
+            flow['application_name'] = flow['app_name']
+        if 'app_category_id' in flow:
+            from sonicwall_templates import APP_CATEGORY_MAP
+            cat_id = flow['app_category_id']
+            flow['application_category'] = APP_CATEGORY_MAP.get(cat_id, f'Category {cat_id}')
+        if 'app_id' in flow:
+            flow['application_id'] = flow['app_id']
+        
+        # Zone names (ASCII codes like "isl3" for internal zone)
+        if 'zone_id_src' in flow:
+            flow['zone_src'] = flow['zone_id_src']
+        if 'zone_id_dst' in flow:
+            flow['zone_dst'] = flow['zone_id_dst']
+        
+        # User object ID (this is a reference, not a name)
+        if 'user_object_id' in flow:
+            obj_id = flow['user_object_id']
+            if obj_id and obj_id > 0:
+                flow['user_id'] = str(obj_id)
+        
         # Add protocol name
         if 'protocol' in flow:
             if isinstance(flow['protocol'], int):
@@ -331,22 +366,26 @@ class IPFIXCollector:
         if 'tcp_flags' in flow and isinstance(flow['tcp_flags'], int):
             flow['tcp_flags_str'] = decode_tcp_flags(flow['tcp_flags'])
         
-        # Calculate bytes from various possible SonicWall fields
-        # Note: SonicWall uses consumed_bytes, or init/resp totals
+        # Calculate bytes from SonicWall fields
         bytes_in = 0
         bytes_out = 0
         
-        # Try init/resp bytes first (if available)
-        if flow.get('init_bytes_total'):
-            bytes_in = int(flow['init_bytes_total'])
-        if flow.get('resp_bytes_total'):
-            bytes_out = int(flow['resp_bytes_total'])
+        # Try init/resp bytes (fields 14 and 16)
+        if flow.get('init_bytes'):
+            bytes_in = int(flow['init_bytes'])
+        if flow.get('resp_bytes'):
+            bytes_out = int(flow['resp_bytes'])
         
-        # Fall back to consumed_bytes if no init/resp
+        # Also check total_bytes (field 170)
+        if bytes_in == 0 and bytes_out == 0 and flow.get('total_bytes'):
+            total = int(flow['total_bytes'])
+            bytes_in = total // 2
+            bytes_out = total - bytes_in
+        
+        # Fall back to consumed_bytes if present
         if bytes_in == 0 and bytes_out == 0:
             consumed = flow.get('consumed_bytes', 0)
             if consumed:
-                # SonicWall consumed_bytes is total, split evenly as approximation
                 bytes_in = int(consumed) // 2
                 bytes_out = int(consumed) - bytes_in
         
@@ -354,26 +393,23 @@ class IPFIXCollector:
         flow['bytes_in'] = bytes_in
         flow['bytes_out'] = bytes_out
         flow['bytes_total'] = bytes_in + bytes_out
+        flow['consumed_bytes'] = bytes_in + bytes_out
         
-        # Calculate packets from various possible fields
+        # Calculate packets from SonicWall fields (13 and 15)
         packets_in = 0
         packets_out = 0
         
-        if flow.get('init_packets_total'):
-            packets_in = int(flow['init_packets_total'])
-        if flow.get('resp_packets_total'):
-            packets_out = int(flow['resp_packets_total'])
-        
-        # Fall back to consumed_packets
-        if packets_in == 0 and packets_out == 0:
-            consumed_pkts = flow.get('consumed_packets', 0)
-            if consumed_pkts:
-                packets_in = int(consumed_pkts) // 2
-                packets_out = int(consumed_pkts) - packets_in
+        if flow.get('init_packets'):
+            packets_in = int(flow['init_packets'])
+        if flow.get('resp_packets'):
+            packets_out = int(flow['resp_packets'])
         
         flow['packets_in'] = packets_in
         flow['packets_out'] = packets_out
         flow['packets_total'] = packets_in + packets_out
+        
+        # Ensure src_port and dst_port are set (from fields 11 and 12)
+        # These come directly from the template decoding now
         
         # Calculate flow duration from various timestamp fields
         if 'flow_start_ms' in flow and 'flow_end_ms' in flow:
@@ -403,22 +439,7 @@ class IPFIXCollector:
         elif 'flow_duration' in flow:
             flow['flow_duration_ms'] = flow['flow_duration']
         
-        # Convert IP integer fields to dotted notation if present
-        if 'src_ip_int' in flow and 'src_ip' not in flow:
-            try:
-                ip_int = int(flow['src_ip_int'])
-                flow['src_ip'] = f"{(ip_int >> 24) & 0xFF}.{(ip_int >> 16) & 0xFF}.{(ip_int >> 8) & 0xFF}.{ip_int & 0xFF}"
-            except (ValueError, TypeError):
-                pass
-        
-        if 'dst_ip_int' in flow and 'dst_ip' not in flow:
-            try:
-                ip_int = int(flow['dst_ip_int'])
-                flow['dst_ip'] = f"{(ip_int >> 24) & 0xFF}.{(ip_int >> 16) & 0xFF}.{(ip_int >> 8) & 0xFF}.{ip_int & 0xFF}"
-            except (ValueError, TypeError):
-                pass
-        
-        # Enrich with identity data from source IP
+        # Enrich with identity data from source IP (now the real internal IP)
         if 'src_ip' in flow:
             identity = self.enricher.lookup(flow['src_ip'])
             if identity:
@@ -427,8 +448,6 @@ class IPFIXCollector:
                 flow['src_department'] = identity.get('department')
                 flow['src_location'] = identity.get('location')
                 # Also set generic user fields for backward compatibility
-                if not flow.get('user_id'):
-                    flow['user_id'] = identity.get('user_id')
                 if not flow.get('user_name'):
                     flow['user_name'] = identity.get('user_name')
         

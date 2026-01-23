@@ -1,8 +1,22 @@
 # SonicWall Flow Reporter - Native Linux Installation
 
-**Version 1.2.8**
+**Version 1.2.9**
 
 Real-time network flow monitoring and reporting for SonicWall firewalls using IPFIX/NetFlow.
+
+## CRITICAL FIX in v1.2.9
+
+Based on packet capture analysis, the field mappings have been completely corrected:
+
+- **Field 5** = `internal_src_ip` - The REAL internal client IP (pre-NAT) ← **THIS IS THE KEY FIX!**
+- **Field 6** = `dst_ip` - Destination IP
+- **Field 7** = `nat_src_ip` - WAN IP after NAT
+- **Field 10** = `user_object_id` - User object ID (integer), NOT a string username
+- **Field 11** = `src_port` - Source port
+- **Field 12** = `dst_port` - Destination port
+- **Field 18** = `app_name` - 4-character ASCII app code (e.g., "isl3" for SSL/TLS)
+
+The collector now properly uses `internal_src_ip` as `src_ip` for user identification and reporting.
 
 Real-time IPFIX/NetFlow reporting for SonicWall firewalls running natively on Ubuntu 24.04 LTS (no Docker required).
 
