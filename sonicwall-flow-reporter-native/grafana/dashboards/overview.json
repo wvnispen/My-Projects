@@ -18,145 +18,79 @@
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
-          "unit": "short"
-        },
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "id": 1,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
       "title": "Total Flows",
       "type": "stat"
     },
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
-          "unit": "decbytes"
-        },
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "decbytes" },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
       "id": 2,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }],
-          "query": "*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
       "title": "Total Bytes",
       "type": "stat"
     },
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
-          "unit": "short"
-        },
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }, "unit": "short" },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "id": 3,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["max"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }],
-          "query": "NOT src_ip:0.0.0.0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }], "query": "src_ip:192.168.* OR src_ip:10.* OR src_ip:172.*", "refId": "A", "timeField": "@timestamp" }],
       "title": "Unique Source IPs",
       "type": "stat"
     },
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
-          "unit": "short"
-        },
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "unit": "short" },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
       "id": 4,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["max"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "cardinality", "field": "dst_ip", "id": "1" }],
-          "query": "NOT dst_ip:0.0.0.0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "dst_ip", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Unique Destinations",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "rule_id", "id": "1" }], "query": "rule_id:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Active Rules",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "url_host", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique URLs",
       "type": "stat"
     },
     {
@@ -172,23 +106,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" }
-          },
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 2, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "decbytes"
@@ -199,35 +117,11 @@
         ]
       },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
-      "id": 5,
-      "options": {
-        "legend": { "calcs": ["mean", "max", "sum"], "displayMode": "table", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
+      "id": 7,
+      "options": { "legend": { "calcs": ["mean", "max", "sum"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        {
-          "alias": "Bytes In",
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "sum", "field": "bytes_in", "id": "1" }],
-          "query": "*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "Bytes Out",
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "sum", "field": "bytes_out", "id": "1" }],
-          "query": "*",
-          "refId": "B",
-          "timeField": "@timestamp",
-          "hide": false
-        }
+        { "alias": "Bytes In", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_in", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" },
+        { "alias": "Bytes Out", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_out", "id": "1" }], "query": "*", "refId": "B", "timeField": "@timestamp", "hide": false }
       ],
       "title": "Bandwidth Over Time",
       "type": "timeseries"
@@ -243,105 +137,39 @@
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
-          "mappings": [],
-          "unit": "decbytes"
-        },
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "decbytes" },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
-      "id": 6,
-      "options": {
-        "displayLabels": ["name", "percent"],
-        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] },
-        "pieType": "pie",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
-        "tooltip": { "mode": "single", "sort": "none" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }],
-          "query": "NOT src_ip:0.0.0.0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "id": 8,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "src_ip:192.168.* OR src_ip:10.* OR src_ip:172.*", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Source IPs by Bandwidth",
       "type": "piechart"
     },
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
-          "mappings": [],
-          "unit": "decbytes"
-        },
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "decbytes" },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 15 },
-      "id": 7,
-      "options": {
-        "displayLabels": ["name", "percent"],
-        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] },
-        "pieType": "pie",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
-        "tooltip": { "mode": "single", "sort": "none" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "dst_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }],
-          "query": "NOT dst_ip:0.0.0.0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "id": 9,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Destination IPs by Bandwidth",
       "type": "piechart"
     },
     {
       "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
-          "mappings": [],
-          "unit": "short"
-        },
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
-      "id": 8,
-      "options": {
-        "displayLabels": ["name", "percent"],
-        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] },
-        "pieType": "pie",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
-        "tooltip": { "mode": "single", "sort": "none" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "dst_port", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }
-          ],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "dst_port:>0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "id": 10,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_port", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "_count" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Destination Ports",
       "type": "piechart"
     },
@@ -362,41 +190,11 @@
         ]
       },
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
-      "id": 9,
-      "options": {
-        "cellHeight": "sm",
-        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
-        "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "Bytes" }]
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "src_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }
-          ],
-          "metrics": [
-            { "type": "sum", "field": "consumed_bytes", "id": "1" },
-            { "type": "count", "id": "2" }
-          ],
-          "query": "NOT src_ip:0.0.0.0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "id": 11,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }], "query": "src_ip:192.168.* OR src_ip:10.* OR src_ip:172.*", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Source IPs",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "renameByName": {
-              "src_ip": "Source IP",
-              "Sum consumed_bytes": "Bytes",
-              "Count": "Flows"
-            }
-          }
-        }
-      ],
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip": "Source IP", "Sum bytes_total": "Bytes", "Count": "Flows" } } }],
       "type": "table"
     },
     {
@@ -408,41 +206,11 @@
         ]
       },
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
-      "id": 10,
-      "options": {
-        "cellHeight": "sm",
-        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
-        "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "Bytes" }]
-      },
-      "targets": [
-        {
-          "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-          "bucketAggs": [
-            { "field": "dst_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }
-          ],
-          "metrics": [
-            { "type": "sum", "field": "consumed_bytes", "id": "1" },
-            { "type": "count", "id": "2" }
-          ],
-          "query": "NOT dst_ip:0.0.0.0",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
+      "id": 12,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Destination IPs",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "renameByName": {
-              "dst_ip": "Destination IP",
-              "Sum consumed_bytes": "Bytes",
-              "Count": "Flows"
-            }
-          }
-        }
-      ],
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_ip": "Destination IP", "Sum bytes_total": "Bytes", "Count": "Flows" } } }],
       "type": "table"
     }
   ],

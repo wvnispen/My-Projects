@@ -13,7 +13,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
       "panels": [],
-      "title": "Sites Summary",
+      "title": "Summary",
       "type": "row"
     },
     {
@@ -25,8 +25,8 @@
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "id": 1,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "dst_ip", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Unique Sites/IPs Visited",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "url_host", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique URLs/Hosts",
       "type": "stat"
     },
     {
@@ -38,8 +38,8 @@
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "id": 2,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Total Bandwidth",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total URL Traffic",
       "type": "stat"
     },
     {
@@ -51,8 +51,8 @@
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
       "id": 3,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Total Connections",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Requests",
       "type": "stat"
     },
     {
@@ -64,8 +64,8 @@
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
       "id": 4,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "dst_port", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Unique Ports Used",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Active Users",
       "type": "stat"
     },
     {
@@ -73,7 +73,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
       "id": 101,
       "panels": [],
-      "title": "Top Sites by Traffic",
+      "title": "Top URLs/Hosts",
       "type": "row"
     },
     {
@@ -85,8 +85,8 @@
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
       "id": 10,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Top Sites by Bandwidth",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "url_host", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top URLs by Bandwidth",
       "type": "piechart"
     },
     {
@@ -98,8 +98,8 @@
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
       "id": 11,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "_count" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Top Sites by Connection Count",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "url_host", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "_count" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top URLs by Request Count",
       "type": "piechart"
     },
     {
@@ -107,59 +107,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
       "id": 102,
       "panels": [],
-      "title": "Top Services (Ports)",
-      "type": "row"
-    },
-    {
-      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [
-          { "options": { "443": { "text": "HTTPS (443)" } }, "type": "value" },
-          { "options": { "80": { "text": "HTTP (80)" } }, "type": "value" },
-          { "options": { "53": { "text": "DNS (53)" } }, "type": "value" },
-          { "options": { "22": { "text": "SSH (22)" } }, "type": "value" },
-          { "options": { "3389": { "text": "RDP (3389)" } }, "type": "value" },
-          { "options": { "8080": { "text": "HTTP-Alt (8080)" } }, "type": "value" },
-          { "options": { "853": { "text": "DNS-TLS (853)" } }, "type": "value" },
-          { "options": { "8883": { "text": "MQTT-TLS (8883)" } }, "type": "value" }
-        ], "unit": "short" },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
-      "id": 20,
-      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_port", "type": "terms", "settings": { "size": "15", "order": "desc", "orderBy": "_count" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Top Destination Ports (Services)",
-      "type": "piechart"
-    },
-    {
-      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": { "mappings": [
-          { "options": { "443": { "text": "HTTPS" } }, "type": "value" },
-          { "options": { "80": { "text": "HTTP" } }, "type": "value" },
-          { "options": { "53": { "text": "DNS" } }, "type": "value" },
-          { "options": { "22": { "text": "SSH" } }, "type": "value" },
-          { "options": { "3389": { "text": "RDP" } }, "type": "value" }
-        ] },
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
-        ]
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
-      "id": 21,
-      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Connections" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_port", "type": "terms", "settings": { "size": "20", "order": "desc", "orderBy": "_count" }, "id": "3" }], "metrics": [{ "type": "count", "id": "2" }, { "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "dst_port:>0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Port Details",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_port": "Port", "Count": "Connections", "Sum consumed_bytes": "Bytes" } } }],
-      "type": "table"
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
-      "id": 103,
-      "panels": [],
-      "title": "Sites Over Time",
+      "title": "URL Traffic Over Time",
       "type": "row"
     },
     {
@@ -174,19 +122,19 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
-      "id": 30,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "id": 20,
       "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "3" }, { "field": "dst_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Top Sites Traffic Over Time",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "3" }, { "field": "url_host", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top URLs Traffic Over Time",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
-      "id": 104,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 103,
       "panels": [],
-      "title": "Detailed Site List",
+      "title": "Detailed URL List",
       "type": "row"
     },
     {
@@ -194,17 +142,39 @@
       "fieldConfig": {
         "defaults": { "mappings": [] },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] },
-          { "matcher": { "id": "byName", "options": "Download" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
-          { "matcher": { "id": "byName", "options": "Upload" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] }
         ]
       },
-      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 35 },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 26 },
+      "id": 30,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Total Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "url_host", "type": "terms", "settings": { "size": "100", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }, { "type": "cardinality", "field": "src_ip", "id": "6" }], "query": "url_host:*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "All URLs - Complete List",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "url_host": "URL/Hostname", "Sum bytes_total": "Total Bytes", "Count": "Requests", "Unique count src_ip": "Users" } } }],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 104,
+      "panels": [],
+      "title": "Destination IPs (for non-HTTP traffic)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 41 },
       "id": 40,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Total Bytes" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "100", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "consumed_bytes", "id": "1" }, { "type": "sum", "field": "bytes_in", "id": "4" }, { "type": "sum", "field": "bytes_out", "id": "5" }, { "type": "count", "id": "2" }, { "type": "cardinality", "field": "user_name", "id": "6" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "All Sites - Complete List",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_ip": "Site (IP)", "Sum consumed_bytes": "Total Bytes", "Sum bytes_in": "Download", "Sum bytes_out": "Upload", "Count": "Connections", "Unique count user_name": "Users" } } }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_ip", "type": "terms", "settings": { "size": "50", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }, { "type": "cardinality", "field": "src_ip", "id": "6" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top Destination IPs",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_ip": "Destination IP", "Sum bytes_total": "Total Bytes", "Count": "Connections", "Unique count src_ip": "Users" } } }],
       "type": "table"
     }
   ],
