@@ -1,22 +1,32 @@
 # SonicWall Flow Reporter - Native Linux Installation
 
-**Version 1.2.9**
+**Version 1.3.0**
 
 Real-time network flow monitoring and reporting for SonicWall firewalls using IPFIX/NetFlow.
 
-## CRITICAL FIX in v1.2.9
+## MAJOR FIXES in v1.3.0
 
-Based on packet capture analysis, the field mappings have been completely corrected:
+Based on extensive packet capture analysis, the field mappings have been completely corrected:
 
-- **Field 5** = `internal_src_ip` - The REAL internal client IP (pre-NAT) ← **THIS IS THE KEY FIX!**
+### Template 257 (Main Flow Data - 39 fields):
+- **Field 5** = `internal_src_ip` - The REAL internal client IP (pre-NAT) ← **KEY FIX!**
 - **Field 6** = `dst_ip` - Destination IP
 - **Field 7** = `nat_src_ip` - WAN IP after NAT
-- **Field 10** = `user_object_id` - User object ID (integer), NOT a string username
-- **Field 11** = `src_port` - Source port
+- **Field 10** = `user_object_id` - User object ID (integer)
+- **Field 11** = `src_port` - Source port  
 - **Field 12** = `dst_port` - Destination port
-- **Field 18** = `app_name` - 4-character ASCII app code (e.g., "isl3" for SSL/TLS)
+- **Field 18** = `app_name` - 4-character ASCII app code (e.g., "isl3", "http")
+- **Field 191** = `rule_info` - Contains rule_id in lower byte
 
-The collector now properly uses `internal_src_ip` as `src_ip` for user identification and reporting.
+### Template 262 (URL/HTTP Data - 4 fields):
+- **Field 59** = `url_host` - Full URL/hostname (e.g., "api.wyzecam.com/")
+- **Field 124** = Zone information
+
+### Fixed Issues:
+- `field_def.decode()` → `field_def.decoder()` (method name fix)
+- Rule ID extraction from `rule_info` field
+- Internal IPs now properly captured (192.168.x.x instead of NAT'd WAN IP)
+- URL/hostname data now captured from Template 262
 
 Real-time IPFIX/NetFlow reporting for SonicWall firewalls running natively on Ubuntu 24.04 LTS (no Docker required).
 

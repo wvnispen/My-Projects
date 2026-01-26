@@ -309,6 +309,29 @@ SONICWALL_FIELDS: Dict[int, FieldDefinition] = {
     
     # Rule/Policy info
     191: FieldDefinition('rule_info', decode_uint32, 'Rule/policy information'),
+    
+    # URL/HTTP fields (Template 262)
+    59: FieldDefinition('url_host', decode_string, 'URL hostname/path'),
+    60: FieldDefinition('url_length', decode_uint32, 'URL length'),
+    123: FieldDefinition('url_session_id_high', decode_uint32, 'URL session ID high'),
+    124: FieldDefinition('url_session_zone', decode_ascii, 'URL session zone'),
+    
+    # Additional templates (195-250 for Template 281 - session data)
+    195: FieldDefinition('session_start_time', decode_uint64, 'Session start time'),
+    196: FieldDefinition('session_end_time', decode_uint64, 'Session end time'),
+    197: FieldDefinition('session_protocol', decode_uint16, 'Session protocol'),
+    198: FieldDefinition('session_ip_version', decode_uint8, 'Session IP version'),
+    199: FieldDefinition('session_direction', decode_uint8, 'Session direction'),
+    200: FieldDefinition('session_src_ip', decode_ip_auto, 'Session source IP'),
+    201: FieldDefinition('session_dst_ip', decode_ip_auto, 'Session destination IP'),
+    202: FieldDefinition('session_nat_src_ip', decode_ip_auto, 'Session NAT source IP'),
+    203: FieldDefinition('session_nat_dst_ip', decode_ip_auto, 'Session NAT destination IP'),
+    204: FieldDefinition('session_src_port', decode_uint16, 'Session source port'),
+    205: FieldDefinition('session_dst_port', decode_uint16, 'Session destination port'),
+    206: FieldDefinition('session_nat_src_port', decode_uint16, 'Session NAT source port'),
+    207: FieldDefinition('session_nat_dst_port', decode_uint16, 'Session NAT destination port'),
+    208: FieldDefinition('session_src_mac', decode_mac, 'Session source MAC'),
+    209: FieldDefinition('session_dst_mac', decode_mac, 'Session destination MAC'),
 }
 
 

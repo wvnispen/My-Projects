@@ -307,7 +307,7 @@ class IPFIXCollector:
             
             if field_def:
                 try:
-                    value = field_def.decode(field_data)
+                    value = field_def.decoder(field_data)
                     if value is not None:
                         flow[field_def.name] = value
                 except Exception as e:
@@ -354,6 +354,16 @@ class IPFIXCollector:
             obj_id = flow['user_object_id']
             if obj_id and obj_id > 0:
                 flow['user_id'] = str(obj_id)
+        
+        # Extract rule_id from rule_info field (field 191)
+        # The rule_info is a uint32 where the lower 8 bits contain the rule ID
+        if 'rule_info' in flow:
+            rule_info = flow['rule_info']
+            if isinstance(rule_info, int):
+                # Rule ID is in the lower byte
+                flow['rule_id'] = rule_info & 0xFF
+                # The upper bits contain flags/additional info
+                flow['rule_flags'] = (rule_info >> 8) & 0xFFFFFF
         
         # Add protocol name
         if 'protocol' in flow:
