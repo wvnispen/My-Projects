@@ -25,7 +25,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "id": 1,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "rule_id" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "rule_id" }], "query": "_exists_:rule_id", "refId": "A", "timeField": "@timestamp" }],
       "title": "Active Rules",
       "type": "stat"
     },
@@ -38,7 +38,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "id": 2,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
       "title": "Total Traffic",
       "type": "stat"
     },
@@ -64,7 +64,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
       "id": 4,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_ip" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_ip" }], "query": "NOT dst_ip:0.0.0.0 AND _exists_:dst_ip", "refId": "A", "timeField": "@timestamp" }],
       "title": "Unique Destinations",
       "type": "stat"
     },
@@ -85,7 +85,7 @@
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
       "id": 10,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "15" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "15", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "_exists_:rule_id AND bytes_total:>0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Rules by Bandwidth",
       "type": "piechart"
     },
@@ -98,7 +98,7 @@
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
       "id": 11,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "15" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "15", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "_exists_:rule_id", "refId": "A", "timeField": "@timestamp" }],
       "title": "Rules by Flow Count",
       "type": "piechart"
     },
@@ -122,16 +122,16 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 17 },
       "id": 20,
       "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "3", "settings": { "interval": "auto" }, "type": "date_histogram" }, { "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "10" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "10", "min_doc_count": "1" }, "type": "terms" }, { "field": "@timestamp", "id": "3", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "_exists_:rule_id AND bytes_total:>0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Rule Traffic Over Time",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
       "id": 103,
       "panels": [],
       "title": "Rule Details",
@@ -142,16 +142,17 @@
       "fieldConfig": {
         "defaults": { "mappings": [] },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
-          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] }
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] },
+          { "matcher": { "id": "byName", "options": "Download" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
+          { "matcher": { "id": "byName", "options": "Upload" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
         ]
       },
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 26 },
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 28 },
       "id": 30,
-      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "30" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }, { "id": "2", "type": "count" }, { "id": "4", "type": "cardinality", "field": "dst_ip" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
-      "title": "All Rules",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "rule_id": "Rule ID", "Sum consumed_bytes": "Bytes", "Count": "Flows", "Unique count dst_ip": "Destinations" } } }],
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "50", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }, { "id": "2", "type": "count" }, { "id": "4", "type": "sum", "field": "bytes_in" }, { "id": "5", "type": "sum", "field": "bytes_out" }, { "id": "6", "type": "cardinality", "field": "src_ip" }, { "id": "7", "type": "cardinality", "field": "dst_ip" }], "query": "_exists_:rule_id", "refId": "A", "timeField": "@timestamp" }],
+      "title": "All Rules - Traffic Details",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "rule_id": "Rule ID", "Sum bytes_total": "Bytes", "Count": "Flows", "Sum bytes_in": "Download", "Sum bytes_out": "Upload", "Unique count src_ip": "Sources", "Unique count dst_ip": "Destinations" } } }],
       "type": "table"
     },
     {
@@ -162,12 +163,12 @@
           { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
         ]
       },
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 26 },
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 28 },
       "id": 31,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "10" }, "type": "terms" }, { "field": "dst_ip", "id": "4", "settings": { "order": "desc", "orderBy": "1", "size": "5" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "consumed_bytes" }, { "id": "2", "type": "count" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Rule → Destination Breakdown",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "rule_id": "Rule ID", "dst_ip": "Destination", "Sum consumed_bytes": "Bytes", "Count": "Flows" } } }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "rule_id", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "10", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_ip", "id": "4", "settings": { "order": "desc", "orderBy": "1", "size": "5", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }, { "id": "2", "type": "count" }], "query": "_exists_:rule_id AND _exists_:dst_ip AND NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Rule → Top Destinations",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "rule_id": "Rule ID", "dst_ip": "Destination", "Sum bytes_total": "Bytes", "Count": "Flows" } } }],
       "type": "table"
     }
   ],

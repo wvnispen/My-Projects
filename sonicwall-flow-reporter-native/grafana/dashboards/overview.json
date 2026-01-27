@@ -50,7 +50,7 @@
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "id": 3,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }], "query": "src_ip:192.168.* OR src_ip:10.* OR src_ip:172.*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Unique Source IPs",
       "type": "stat"
     },
@@ -143,7 +143,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
       "id": 8,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "src_ip:192.168.* OR src_ip:10.* OR src_ip:172.*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Source IPs by Bandwidth",
       "type": "piechart"
     },
@@ -192,7 +192,7 @@
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
       "id": 11,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }], "query": "src_ip:192.168.* OR src_ip:10.* OR src_ip:172.*", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "25", "order": "desc", "orderBy": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Source IPs",
       "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip": "Source IP", "Sum bytes_total": "Bytes", "Count": "Flows" } } }],
       "type": "table"
