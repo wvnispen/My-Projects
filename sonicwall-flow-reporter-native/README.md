@@ -1,32 +1,50 @@
 # SonicWall Flow Reporter - Native Linux Installation
 
-**Version 1.3.0**
+**Version 1.4.0**
 
 Real-time network flow monitoring and reporting for SonicWall firewalls using IPFIX/NetFlow.
 
-## MAJOR FIXES in v1.3.0
+## NEW in v1.4.0 - Value-Added Features
 
-Based on extensive packet capture analysis, the field mappings have been completely corrected:
+### 🌍 GeoIP Location Mapping
+- World map showing traffic destinations by country
+- City-level geolocation for destination IPs
+- ASN/Organization identification (ISP, cloud provider, etc.)
+- Requires free MaxMind GeoLite2 database
 
-### Template 257 (Main Flow Data - 39 fields):
-- **Field 5** = `internal_src_ip` - The REAL internal client IP (pre-NAT) ← **KEY FIX!**
-- **Field 6** = `dst_ip` - Destination IP
-- **Field 7** = `nat_src_ip` - WAN IP after NAT
-- **Field 10** = `user_object_id` - User object ID (integer)
-- **Field 11** = `src_port` - Source port  
-- **Field 12** = `dst_port` - Destination port
-- **Field 18** = `app_name` - 4-character ASCII app code (e.g., "isl3", "http")
-- **Field 191** = `rule_info` - Contains rule_id in lower byte
+### 🛡️ Threat Intelligence Integration
+- Automatic IP reputation checking against multiple threat feeds
+- Emerging Threats, Feodo Tracker, Spamhaus DROP
+- Custom local blocklist support
+- Real-time alerting on malicious traffic
 
-### Template 262 (URL/HTTP Data - 4 fields):
-- **Field 59** = `url_host` - Full URL/hostname (e.g., "api.wyzecam.com/")
-- **Field 124** = Zone information
+### 📊 Application Classification
+- Traffic categorization by application type
+- Port-based service identification (HTTP, HTTPS, SSH, RDP, etc.)
+- Productivity classification (Productive, Unproductive, Neutral)
+- URL-based categorization (Streaming, Social Media, Business)
 
-### Fixed Issues:
-- `field_def.decode()` → `field_def.decoder()` (method name fix)
-- Rule ID extraction from `rule_info` field
-- Internal IPs now properly captured (192.168.x.x instead of NAT'd WAN IP)
-- URL/hostname data now captured from Template 262
+### ⚠️ Risk Scoring
+- Automatic risk score (0-100) for each flow
+- Based on: port risk, data volume, app category, threat intel
+- High-risk flow alerting
+
+### 🔍 DNS Reverse Lookup
+- Hostname resolution for destination IPs
+- Cached for performance
+- Makes dashboards more readable
+
+### 📈 New Dashboards
+- **GeoIP & World Map** - Geographic traffic visualization
+- **Threat Intelligence** - Security monitoring and alerts
+- **Applications & Productivity** - Traffic classification
+
+### 🔔 Alerting (Grafana)
+- Pre-configured alert rules for common scenarios
+- Threat detection alerts
+- High bandwidth user alerts
+- Risky port usage alerts
+- Unusual country access alerts
 
 Real-time IPFIX/NetFlow reporting for SonicWall firewalls running natively on Ubuntu 24.04 LTS (no Docker required).
 
@@ -447,6 +465,104 @@ For production deployments, consider:
 - Setting up HTTPS for Grafana and Identity UI
 - Using a reverse proxy (nginx) with SSL certificates
 - Restricting IPFIX sources by IP
+
+---
+
+## Setting Up GeoIP (Optional but Recommended)
+
+GeoIP enrichment adds country, city, and organization data to your traffic analysis.
+
+### Step 1: Get a Free MaxMind License Key
+
+1. Go to https://www.maxmind.com/en/geolite2/signup
+2. Create a free account
+3. Go to Account > Manage License Keys
+4. Generate a new license key
+
+### Step 2: Download the Databases
+
+```bash
+# Run the download script with your license key
+sudo bash /opt/sonicwall-flow-reporter/scripts/download-geoip.sh YOUR_LICENSE_KEY
+```
+
+This downloads:
+- GeoLite2-City.mmdb - Country, city, coordinates
+- GeoLite2-ASN.mmdb - ISP/Organization info
+
+### Step 3: Restart the Collector
+
+```bash
+sudo systemctl restart swfr-collector
+```
+
+### Step 4: Verify GeoIP is Working
+
+Check the collector logs:
+```bash
+sudo journalctl -u swfr-collector | grep -i geoip
+```
+
+You should see: `GeoIP enrichment enabled`
+
+---
+
+## Setting Up Threat Intelligence
+
+Threat intelligence is enabled by default and uses free public feeds:
+- Emerging Threats Compromised IPs
+- Emerging Threats Block List
+- Feodo Tracker (Banking Trojans)
+- Spamhaus DROP
+
+### Custom Blocklist
+
+To add your own blocklist:
+
+1. Create a file with one IP or CIDR per line:
+```bash
+sudo nano /opt/sonicwall-flow-reporter/blocklist.txt
+```
+
+Example content:
+```
+# My custom blocklist
+192.0.2.1
+198.51.100.0/24
+203.0.113.50
+```
+
+2. Configure the collector:
+```bash
+sudo nano /etc/sonicwall-flow-reporter/config.env
+```
+
+Add:
+```bash
+THREAT_INTEL_BLOCKLIST=/opt/sonicwall-flow-reporter/blocklist.txt
+```
+
+3. Restart:
+```bash
+sudo systemctl restart swfr-collector
+```
+
+---
+
+## Environment Variables
+
+The collector supports these environment variables in `/etc/sonicwall-flow-reporter/config.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_GEOIP` | `true` | Enable GeoIP enrichment |
+| `GEOIP_DB_DIR` | `/opt/sonicwall-flow-reporter/geoip` | GeoIP database directory |
+| `ENABLE_DNS` | `true` | Enable DNS reverse lookup |
+| `DNS_TIMEOUT` | `1.0` | DNS lookup timeout (seconds) |
+| `ENABLE_APP_CLASSIFIER` | `true` | Enable application classification |
+| `ENABLE_THREAT_INTEL` | `true` | Enable threat intelligence |
+| `THREAT_INTEL_BLOCKLIST` | (none) | Path to custom blocklist file |
+| `ABUSEIPDB_API_KEY` | (none) | AbuseIPDB API key (optional) |
 
 ---
 

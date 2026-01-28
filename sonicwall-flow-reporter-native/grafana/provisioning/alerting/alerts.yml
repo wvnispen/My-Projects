@@ -1,0 +1,199 @@
+# Grafana Alerting Configuration for SonicWall Flow Reporter
+# 
+# This file contains example alert rules. Import these into Grafana via:
+# Settings > Alerting > Alert Rules > Import
+#
+# Or configure them manually through the Grafana UI.
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: SonicWall Security Alerts
+    folder: SonicWall Alerts
+    interval: 1m
+    rules:
+      # Alert: Traffic to Threat Intelligence IP
+      - uid: threat-detection-alert
+        title: Threat Intelligence Hit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${datasource}"
+            model:
+              query: "threat_detected:true"
+              metrics:
+                - type: count
+                  id: "1"
+              bucketAggs:
+                - type: date_histogram
+                  settings:
+                    interval: auto
+                  field: "@timestamp"
+                  id: "2"
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: "Traffic detected to known malicious IP"
+          description: "Internal host communicated with an IP flagged by threat intelligence feeds"
+        labels:
+          severity: critical
+
+      # Alert: High bandwidth user
+      - uid: high-bandwidth-alert
+        title: High Bandwidth User
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: "${datasource}"
+            model:
+              query: "NOT src_ip:102.132.137.1"
+              metrics:
+                - type: sum
+                  field: bytes_total
+                  id: "1"
+              bucketAggs:
+                - type: terms
+                  field: src_ip
+                  settings:
+                    size: "1"
+                    order: desc
+                    orderBy: "1"
+                  id: "2"
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: "User exceeding bandwidth threshold"
+          description: "An internal IP has transferred more than 10GB in the past hour"
+        labels:
+          severity: warning
+
+      # Alert: Unusual country access
+      - uid: unusual-country-alert
+        title: Traffic to Unusual Country
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${datasource}"
+            model:
+              # Customize this list based on your expected traffic patterns
+              query: 'dst_geo.country_code:(RU OR CN OR KP OR IR) AND NOT dst_ip:0.0.0.0'
+              metrics:
+                - type: count
+                  id: "1"
+              bucketAggs:
+                - type: date_histogram
+                  settings:
+                    interval: auto
+                  field: "@timestamp"
+                  id: "2"
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: "Traffic detected to restricted country"
+          description: "Network traffic was detected to a country on the watchlist"
+        labels:
+          severity: warning
+
+      # Alert: Risky port usage
+      - uid: risky-port-alert
+        title: Risky Port Usage Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${datasource}"
+            model:
+              query: "service_risk:high"
+              metrics:
+                - type: count
+                  id: "1"
+              bucketAggs:
+                - type: date_histogram
+                  settings:
+                    interval: auto
+                  field: "@timestamp"
+                  id: "2"
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: "High-risk service/port usage detected"
+          description: "Traffic on ports typically associated with security risks (Telnet, etc.)"
+        labels:
+          severity: warning
+
+      # Alert: New internal IP detected
+      - uid: new-ip-alert
+        title: New Internal IP Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 86400
+              to: 0
+            datasourceUid: "${datasource}"
+            model:
+              query: "NOT src_ip:102.132.137.1"
+              metrics:
+                - type: cardinality
+                  field: src_ip
+                  id: "1"
+              bucketAggs:
+                - type: date_histogram
+                  settings:
+                    interval: auto
+                  field: "@timestamp"
+                  id: "2"
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: "New device on network"
+          description: "A new internal IP address was detected on the network"
+        labels:
+          severity: info
+
+      # Alert: High risk score
+      - uid: high-risk-alert
+        title: High Risk Score Detected
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${datasource}"
+            model:
+              query: "risk_score:>=70"
+              metrics:
+                - type: count
+                  id: "1"
+              bucketAggs:
+                - type: date_histogram
+                  settings:
+                    interval: auto
+                  field: "@timestamp"
+                  id: "2"
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: "High risk network activity detected"
+          description: "Network flows with risk scores of 70 or higher have been detected"
+        labels:
+          severity: critical

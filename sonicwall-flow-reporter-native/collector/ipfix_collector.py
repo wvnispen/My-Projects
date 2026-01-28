@@ -9,6 +9,10 @@ Supports:
 - NetFlow v9
 - IPFIX (NetFlow v10)
 - SonicWall enterprise fields
+- GeoIP enrichment
+- DNS reverse lookup
+- Application classification
+- Threat intelligence
 """
 
 import os
@@ -26,6 +30,31 @@ from sonicwall_templates import (
 )
 from es_writer import ElasticsearchWriter
 from enrichment import IdentityEnricher
+
+# Optional enrichment modules
+try:
+    from geoip_enrichment import GeoIPEnricher
+    GEOIP_AVAILABLE = True
+except ImportError:
+    GEOIP_AVAILABLE = False
+
+try:
+    from dns_resolver import DNSResolver
+    DNS_AVAILABLE = True
+except ImportError:
+    DNS_AVAILABLE = False
+
+try:
+    from app_classifier import ApplicationClassifier, calculate_risk_score
+    APP_CLASSIFIER_AVAILABLE = True
+except ImportError:
+    APP_CLASSIFIER_AVAILABLE = False
+
+try:
+    from threat_intel import ThreatIntelligence
+    THREAT_INTEL_AVAILABLE = True
+except ImportError:
+    THREAT_INTEL_AVAILABLE = False
 
 logger = logging.getLogger('swfr.collector')
 
@@ -85,8 +114,62 @@ class IPFIXCollector:
         self.es_writer = ElasticsearchWriter()
         self.enricher = IdentityEnricher(self.es_writer.es_client)
         
+        # Initialize optional enrichment modules
+        self._init_enrichment_modules()
+        
         self.stats = defaultdict(int)
         self.running = False
+    
+    def _init_enrichment_modules(self):
+        """Initialize optional enrichment modules based on configuration"""
+        
+        # GeoIP enrichment
+        self.geoip_enricher = None
+        if GEOIP_AVAILABLE and os.environ.get('ENABLE_GEOIP', 'true').lower() == 'true':
+            try:
+                geoip_db_dir = os.environ.get('GEOIP_DB_DIR', '/opt/sonicwall-flow-reporter/geoip')
+                self.geoip_enricher = GeoIPEnricher(db_dir=geoip_db_dir)
+                if self.geoip_enricher.enabled:
+                    logger.info("GeoIP enrichment enabled")
+                else:
+                    logger.info("GeoIP databases not found - enrichment disabled")
+                    self.geoip_enricher = None
+            except Exception as e:
+                logger.warning(f"GeoIP enrichment initialization failed: {e}")
+        
+        # DNS resolver
+        self.dns_resolver = None
+        if DNS_AVAILABLE and os.environ.get('ENABLE_DNS', 'true').lower() == 'true':
+            try:
+                dns_timeout = float(os.environ.get('DNS_TIMEOUT', '1.0'))
+                self.dns_resolver = DNSResolver(timeout=dns_timeout, enabled=True)
+                logger.info("DNS resolver enabled")
+            except Exception as e:
+                logger.warning(f"DNS resolver initialization failed: {e}")
+        
+        # Application classifier
+        self.app_classifier = None
+        if APP_CLASSIFIER_AVAILABLE and os.environ.get('ENABLE_APP_CLASSIFIER', 'true').lower() == 'true':
+            try:
+                self.app_classifier = ApplicationClassifier()
+                logger.info("Application classifier enabled")
+            except Exception as e:
+                logger.warning(f"Application classifier initialization failed: {e}")
+        
+        # Threat intelligence
+        self.threat_intel = None
+        if THREAT_INTEL_AVAILABLE and os.environ.get('ENABLE_THREAT_INTEL', 'true').lower() == 'true':
+            try:
+                local_blocklist = os.environ.get('THREAT_INTEL_BLOCKLIST')
+                abuseipdb_key = os.environ.get('ABUSEIPDB_API_KEY')
+                self.threat_intel = ThreatIntelligence(
+                    enabled=True,
+                    local_blocklist_path=local_blocklist,
+                    abuseipdb_key=abuseipdb_key
+                )
+                logger.info(f"Threat intelligence enabled: {self.threat_intel.get_stats()}")
+            except Exception as e:
+                logger.warning(f"Threat intelligence initialization failed: {e}")
     
     def _parse_allowed_sources(self) -> Optional[set]:
         """Parse allowed source IPs from environment"""
@@ -469,20 +552,71 @@ class IPFIXCollector:
                 flow['dst_user_name'] = identity.get('user_name')
                 flow['dst_department'] = identity.get('department')
                 flow['dst_location'] = identity.get('location')
+        
+        # === NEW ENRICHMENT MODULES ===
+        
+        # GeoIP enrichment - add location data for destination IPs
+        if self.geoip_enricher:
+            try:
+                self.geoip_enricher.enrich_flow(flow)
+            except Exception as e:
+                logger.debug(f"GeoIP enrichment error: {e}")
+        
+        # DNS reverse lookup - resolve hostnames
+        if self.dns_resolver:
+            try:
+                self.dns_resolver.enrich_flow(flow)
+            except Exception as e:
+                logger.debug(f"DNS resolver error: {e}")
+        
+        # Application classification - categorize traffic
+        if self.app_classifier:
+            try:
+                self.app_classifier.enrich_flow(flow)
+                # Calculate risk score
+                flow['risk_score'] = calculate_risk_score(flow)
+            except Exception as e:
+                logger.debug(f"Application classifier error: {e}")
+        
+        # Threat intelligence - flag malicious IPs
+        if self.threat_intel:
+            try:
+                self.threat_intel.enrich_flow(flow)
+            except Exception as e:
+                logger.debug(f"Threat intelligence error: {e}")
     
     def _report_stats(self):
         """Periodically log collection statistics"""
         import time
         while self.running:
             time.sleep(60)
-            logger.info(
+            
+            stats_msg = (
                 f"Stats: packets={self.stats['packets_received']}, "
                 f"flows={self.stats['flows_processed']}, "
                 f"templates={self.stats['templates_received']}, "
                 f"errors={self.stats['errors']}"
             )
+            
+            # Add DNS cache stats if available
+            if self.dns_resolver:
+                dns_stats = self.dns_resolver.get_stats()
+                stats_msg += f", dns_cache_hit_rate={dns_stats['hit_rate']:.1f}%"
+            
+            # Add threat intel stats if available
+            if self.threat_intel:
+                ti_stats = self.threat_intel.get_stats()
+                stats_msg += f", threat_ips={ti_stats['malicious_ips']}"
+            
+            logger.info(stats_msg)
     
     def stop(self):
         """Stop the collector"""
         self.running = False
         self.es_writer.flush()
+        
+        # Cleanup enrichment modules
+        if self.geoip_enricher:
+            self.geoip_enricher.close()
+        if self.dns_resolver:
+            self.dns_resolver.shutdown()
