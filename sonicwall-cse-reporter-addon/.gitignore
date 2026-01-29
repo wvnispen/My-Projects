@@ -37,3 +37,8 @@ node_modules/
 
 # Test data
 test-data/
+
+# Secrets - never commit these
+env
+*.key
+*.pem

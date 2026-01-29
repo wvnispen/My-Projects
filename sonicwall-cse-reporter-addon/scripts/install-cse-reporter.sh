@@ -1,9 +1,9 @@
 #!/bin/bash
 #
 # SonicWall CSE Reporter - Installation Script
-# Version 1.0.0
+# Version 2.0.0 - API Integration
 #
-# This script installs Loki, Grafana Alloy, and CSE dashboards
+# This script installs the CSE Events API Collector, Loki, and CSE dashboards
 # Can be used as an add-on to existing Flow Reporter or as fresh install
 #
 
@@ -17,12 +17,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Version
-VERSION="1.0.0"
+VERSION="2.0.0"
 
 # Default ports
 LOKI_PORT=3100
-ALLOY_SYSLOG_PORT=6514
-ALLOY_UI_PORT=12345
 GRAFANA_PORT=3000
 
 # Paths
@@ -34,6 +32,7 @@ DASHBOARD_DIR="$PROJECT_DIR/dashboards"
 # Installation type
 INSTALL_TYPE=""
 UPGRADE_MODE=false
+CSE_API_KEY=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -41,6 +40,10 @@ while [[ $# -gt 0 ]]; do
         --upgrade)
             UPGRADE_MODE=true
             shift
+            ;;
+        --api-key)
+            CSE_API_KEY="$2"
+            shift 2
             ;;
         *)
             shift
@@ -52,8 +55,8 @@ print_banner() {
     echo -e "${BLUE}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
     echo "║                                                               ║"
-    echo "║           SonicWall CSE Reporter - Installer                  ║"
-    echo "║                     Version ${VERSION}                            ║"
+    echo "║         SonicWall CSE Reporter - Installer v${VERSION}           ║"
+    echo "║              API Integration Edition                          ║"
     echo "║                                                               ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -109,7 +112,7 @@ detect_existing_installation() {
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
     
-    # Check for existing Grafana (indicates Flow Reporter or standalone Grafana)
+    # Check for existing Grafana
     if systemctl is-active --quiet grafana-server 2>/dev/null; then
         log_info "Detected existing Grafana installation"
         GRAFANA_EXISTS=true
@@ -133,13 +136,72 @@ detect_existing_installation() {
         LOKI_EXISTS=false
     fi
     
-    # Check for existing Alloy
-    if systemctl is-active --quiet alloy 2>/dev/null; then
-        log_info "Detected existing Alloy installation"
-        ALLOY_EXISTS=true
+    # Check for existing CSE Collector
+    if systemctl is-active --quiet cse-collector 2>/dev/null; then
+        log_info "Detected existing CSE Collector installation"
+        COLLECTOR_EXISTS=true
     else
-        ALLOY_EXISTS=false
+        COLLECTOR_EXISTS=false
     fi
+    
+    echo ""
+}
+
+prompt_api_key() {
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  CSE API Configuration${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+    
+    if [[ -n "$CSE_API_KEY" ]]; then
+        log_info "API key provided via command line"
+        return
+    fi
+    
+    # Check if already configured
+    if [[ -f /etc/cse-collector/env ]]; then
+        existing_key=$(grep "^CSE_API_KEY=" /etc/cse-collector/env 2>/dev/null | cut -d'=' -f2)
+        if [[ -n "$existing_key" && "$existing_key" != "your-api-key-secret-here" ]]; then
+            log_info "Existing API key found in /etc/cse-collector/env"
+            read -p "Keep existing API key? (Y/n): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+                CSE_API_KEY="$existing_key"
+                return
+            fi
+        fi
+    fi
+    
+    echo "To collect logs from SonicWall CSE, you need an API key."
+    echo ""
+    echo "To create an API key:"
+    echo "  1. Log into CSE Command Center"
+    echo "  2. Navigate to Settings → API Keys"
+    echo "  3. Create a new key with 'ReadOnly' scope"
+    echo "  4. Copy the API Secret"
+    echo ""
+    echo "Documentation: https://cse-docs.sonicwall.com/docs/visibility-logging/events/elk-stack/"
+    echo ""
+    
+    while true; do
+        read -p "Enter your CSE API Key (or 'skip' to configure later): " CSE_API_KEY
+        if [[ "$CSE_API_KEY" == "skip" ]]; then
+            log_warn "Skipping API key configuration. You must configure it later in /etc/cse-collector/env"
+            CSE_API_KEY=""
+            break
+        elif [[ -n "$CSE_API_KEY" ]]; then
+            # Basic validation - CSE API keys are typically long strings
+            if [[ ${#CSE_API_KEY} -lt 20 ]]; then
+                log_warn "API key seems too short. Are you sure this is correct?"
+                read -p "Continue anyway? (y/N): " -n 1 -r
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    continue
+                fi
+            fi
+            break
+        fi
+    done
     
     echo ""
 }
@@ -154,7 +216,7 @@ prompt_installation_type() {
         echo "Existing Grafana detected. Choose installation type:"
         echo ""
         echo "  1) Add-on Installation (Recommended)"
-        echo "     - Add Loki and Alloy to existing stack"
+        echo "     - Add Loki and CSE Collector to existing stack"
         echo "     - Create CSE dashboards in existing Grafana"
         echo "     - Preserve existing Flow Reporter configuration"
         echo ""
@@ -174,7 +236,7 @@ prompt_installation_type() {
                     ;;
                 2)
                     INSTALL_TYPE="fresh"
-                    log_warn "Selected: Fresh Installation (existing services may conflict)"
+                    log_warn "Selected: Fresh Installation"
                     read -p "Are you sure? (y/N): " -n 1 -r
                     echo
                     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -192,7 +254,7 @@ prompt_installation_type() {
         echo "The following components will be installed:"
         echo "  - Grafana (Dashboard UI)"
         echo "  - Loki (Log Storage)"
-        echo "  - Grafana Alloy (Log Collection)"
+        echo "  - CSE Collector (API-based log collection)"
         echo ""
         read -p "Continue with fresh installation? (Y/n): " -n 1 -r
         echo
@@ -217,7 +279,10 @@ install_prerequisites() {
         curl \
         gnupg2 \
         jq \
-        unzip
+        unzip \
+        python3 \
+        python3-pip \
+        python3-venv
     
     log_info "Prerequisites installed"
 }
@@ -247,16 +312,13 @@ install_grafana() {
     
     apt-get install -y grafana
     
-    # Enable and start service
     systemctl daemon-reload
     systemctl enable grafana-server
     systemctl start grafana-server
     
-    # Wait for Grafana to start
     log_info "Waiting for Grafana to start..."
     sleep 5
     
-    # Check if Grafana is running
     if systemctl is-active --quiet grafana-server; then
         log_info "Grafana installed and running on port ${GRAFANA_PORT}"
     else
@@ -288,16 +350,13 @@ install_loki() {
     mkdir -p /var/lib/loki
     chown loki:loki /var/lib/loki
     
-    # Enable and start service
     systemctl daemon-reload
     systemctl enable loki
     systemctl restart loki
     
-    # Wait for Loki to start
     log_info "Waiting for Loki to start..."
     sleep 5
     
-    # Check if Loki is running
     if systemctl is-active --quiet loki; then
         log_info "Loki installed and running on port ${LOKI_PORT}"
     else
@@ -307,61 +366,69 @@ install_loki() {
     fi
 }
 
-install_alloy() {
-    if [[ "$ALLOY_EXISTS" == "true" && "$UPGRADE_MODE" == "false" ]]; then
-        log_info "Alloy already installed, updating configuration..."
+install_cse_collector() {
+    log_info "Installing CSE Events Collector..."
+    
+    # Create user
+    if ! id -u cse-collector &>/dev/null; then
+        useradd -r -s /bin/false cse-collector
+    fi
+    
+    # Create directories
+    mkdir -p /opt/cse-collector
+    mkdir -p /etc/cse-collector
+    mkdir -p /var/lib/cse-collector
+    mkdir -p /var/log/cse-collector
+    
+    # Install Python dependencies
+    log_info "Installing Python dependencies..."
+    pip3 install --break-system-packages requests pyyaml
+    
+    # Copy collector script
+    cp "$SCRIPT_DIR/cse-collector.py" /opt/cse-collector/
+    chmod +x /opt/cse-collector/cse-collector.py
+    
+    # Copy config
+    cp "$CONFIG_DIR/cse-collector/config.yaml" /etc/cse-collector/
+    
+    # Create environment file with API key
+    if [[ -n "$CSE_API_KEY" ]]; then
+        echo "CSE_API_KEY=$CSE_API_KEY" > /etc/cse-collector/env
     else
-        log_info "Installing Grafana Alloy..."
-        apt-get install -y alloy
+        cp "$CONFIG_DIR/cse-collector/env.template" /etc/cse-collector/env
     fi
+    chmod 600 /etc/cse-collector/env
     
-    # Create config directory
-    mkdir -p /etc/alloy
+    # Set ownership
+    chown -R cse-collector:cse-collector /var/lib/cse-collector
+    chown -R cse-collector:cse-collector /var/log/cse-collector
+    chown root:cse-collector /etc/cse-collector/env
     
-    # Backup existing config if present
-    if [[ -f /etc/alloy/config.alloy ]]; then
-        cp /etc/alloy/config.alloy /etc/alloy/config.alloy.bak
-    fi
+    # Install systemd service
+    cp "$SCRIPT_DIR/../systemd/cse-collector.service" /etc/systemd/system/
     
-    # Deploy our configuration
-    cp "$CONFIG_DIR/alloy/config.alloy" /etc/alloy/config.alloy
-    
-    # Create log directory
-    mkdir -p /var/log/alloy
-    
-    # Update systemd service to use our config
-    mkdir -p /etc/systemd/system/alloy.service.d
-    cat > /etc/systemd/system/alloy.service.d/override.conf << 'EOF'
-[Service]
-ExecStart=
-ExecStart=/usr/bin/alloy run /etc/alloy/config.alloy --storage.path=/var/lib/alloy/data
-EOF
-    
-    # Enable and start service
     systemctl daemon-reload
-    systemctl enable alloy
-    systemctl restart alloy
+    systemctl enable cse-collector
     
-    # Wait for Alloy to start
-    log_info "Waiting for Alloy to start..."
-    sleep 5
-    
-    # Check if Alloy is running
-    if systemctl is-active --quiet alloy; then
-        log_info "Alloy installed and running"
-        log_info "  - Syslog receiver on port ${ALLOY_SYSLOG_PORT}"
-        log_info "  - Alloy UI on port ${ALLOY_UI_PORT}"
+    # Only start if API key is configured
+    if [[ -n "$CSE_API_KEY" ]]; then
+        systemctl start cse-collector
+        sleep 3
+        if systemctl is-active --quiet cse-collector; then
+            log_info "CSE Collector installed and running"
+        else
+            log_warn "CSE Collector installed but failed to start. Check configuration."
+            journalctl -u cse-collector --no-pager -n 10
+        fi
     else
-        log_error "Alloy failed to start"
-        journalctl -u alloy --no-pager -n 20
-        exit 1
+        log_warn "CSE Collector installed but not started (API key not configured)"
+        log_warn "Configure API key in /etc/cse-collector/env and run: systemctl start cse-collector"
     fi
 }
 
 configure_grafana_datasource() {
     log_info "Configuring Loki datasource in Grafana..."
     
-    # Wait for Grafana API to be ready
     GRAFANA_URL="http://localhost:${GRAFANA_PORT}"
     GRAFANA_CREDS="admin:admin"
     
@@ -380,7 +447,6 @@ configure_grafana_datasource() {
     if echo "$EXISTING_DS" | grep -q '"id"'; then
         log_info "Loki datasource already exists in Grafana"
     else
-        # Create Loki datasource
         curl -s -X POST \
             -H "Content-Type: application/json" \
             -u "$GRAFANA_CREDS" \
@@ -390,8 +456,7 @@ configure_grafana_datasource() {
                 "type": "loki",
                 "url": "http://localhost:3100",
                 "access": "proxy",
-                "isDefault": false,
-                "jsonData": {}
+                "isDefault": false
             }' > /dev/null
         
         log_info "Loki datasource created in Grafana"
@@ -404,21 +469,17 @@ create_dashboard_folder() {
     GRAFANA_URL="http://localhost:${GRAFANA_PORT}"
     GRAFANA_CREDS="admin:admin"
     
-    # Check if folder exists
     EXISTING_FOLDER=$(curl -s -u "$GRAFANA_CREDS" "$GRAFANA_URL/api/folders" | jq -r '.[] | select(.title=="SonicWall CSE") | .uid')
     
     if [[ -n "$EXISTING_FOLDER" ]]; then
         log_info "Dashboard folder 'SonicWall CSE' already exists (UID: $EXISTING_FOLDER)"
         FOLDER_UID="$EXISTING_FOLDER"
     else
-        # Create folder
         FOLDER_RESPONSE=$(curl -s -X POST \
             -H "Content-Type: application/json" \
             -u "$GRAFANA_CREDS" \
             "$GRAFANA_URL/api/folders" \
-            -d '{
-                "title": "SonicWall CSE"
-            }')
+            -d '{"title": "SonicWall CSE"}')
         
         FOLDER_UID=$(echo "$FOLDER_RESPONSE" | jq -r '.uid')
         
@@ -430,7 +491,6 @@ create_dashboard_folder() {
         fi
     fi
     
-    # Export for dashboard import
     export CSE_FOLDER_UID="$FOLDER_UID"
 }
 
@@ -440,16 +500,13 @@ import_dashboards() {
     GRAFANA_URL="http://localhost:${GRAFANA_PORT}"
     GRAFANA_CREDS="admin:admin"
     
-    # Import each dashboard
     for dashboard_file in "$DASHBOARD_DIR"/*.json; do
         if [[ -f "$dashboard_file" ]]; then
             dashboard_name=$(basename "$dashboard_file" .json)
             log_info "Importing dashboard: $dashboard_name"
             
-            # Read dashboard JSON and wrap it for import API
             DASHBOARD_JSON=$(cat "$dashboard_file")
             
-            # Create import payload with folder UID
             IMPORT_PAYLOAD=$(jq -n \
                 --arg folderUid "$CSE_FOLDER_UID" \
                 --argjson dashboard "$DASHBOARD_JSON" \
@@ -459,7 +516,6 @@ import_dashboards() {
                     "overwrite": true
                 }')
             
-            # Import dashboard
             IMPORT_RESULT=$(curl -s -X POST \
                 -H "Content-Type: application/json" \
                 -u "$GRAFANA_CREDS" \
@@ -479,14 +535,12 @@ import_dashboards() {
 configure_firewall() {
     log_info "Configuring firewall rules..."
     
-    # Check if ufw is installed and active
     if command -v ufw &> /dev/null && ufw status | grep -q "active"; then
-        ufw allow ${ALLOY_SYSLOG_PORT}/tcp comment "Alloy Syslog (CSE)"
         ufw allow ${GRAFANA_PORT}/tcp comment "Grafana"
-        log_info "UFW rules added for ports ${ALLOY_SYSLOG_PORT} and ${GRAFANA_PORT}"
+        log_info "UFW rule added for port ${GRAFANA_PORT}"
     else
         log_info "UFW not active, skipping firewall configuration"
-        log_info "Ensure ports ${ALLOY_SYSLOG_PORT} (Syslog) and ${GRAFANA_PORT} (Grafana) are accessible"
+        log_info "Ensure port ${GRAFANA_PORT} (Grafana) is accessible"
     fi
 }
 
@@ -505,24 +559,44 @@ print_summary() {
     fi
     
     echo "  ✓ Loki             : http://localhost:${LOKI_PORT}"
-    echo "  ✓ Grafana Alloy    : Syslog on port ${ALLOY_SYSLOG_PORT}"
-    echo "                       UI on port ${ALLOY_UI_PORT}"
+    
+    if [[ -n "$CSE_API_KEY" ]]; then
+        echo "  ✓ CSE Collector    : Running (polling CSE API)"
+    else
+        echo "  ⚠ CSE Collector    : Installed but not started (API key required)"
+    fi
+    
     echo ""
     echo "Dashboard folder: SonicWall CSE"
     echo ""
+    
+    if [[ -z "$CSE_API_KEY" ]]; then
+        echo -e "${YELLOW}IMPORTANT: Configure your CSE API key${NC}"
+        echo ""
+        echo "1. Create an API key in CSE Command Center:"
+        echo "   Settings → API Keys → Create new key (ReadOnly scope)"
+        echo ""
+        echo "2. Add the API key to the configuration:"
+        echo "   sudo nano /etc/cse-collector/env"
+        echo "   Set: CSE_API_KEY=your-api-key-here"
+        echo ""
+        echo "3. Start the collector:"
+        echo "   sudo systemctl start cse-collector"
+        echo ""
+    fi
+    
     echo -e "${YELLOW}Next Steps:${NC}"
     echo ""
-    echo "1. Configure SonicWall CSE to send syslog to:"
-    echo "   Server: $(hostname -I | awk '{print $1}')"
-    echo "   Port:   ${ALLOY_SYSLOG_PORT}"
-    echo "   Protocol: TCP (TLS recommended for production)"
-    echo ""
-    echo "2. Access Grafana dashboards:"
+    echo "1. Access Grafana dashboards:"
     echo "   http://$(hostname -I | awk '{print $1}'):${GRAFANA_PORT}"
     echo "   Navigate to: Dashboards → SonicWall CSE"
     echo ""
-    echo "3. Verify data is flowing:"
+    echo "2. Verify data is flowing:"
     echo "   curl -s 'http://localhost:${LOKI_PORT}/loki/api/v1/labels' | jq"
+    echo ""
+    echo "3. Check collector status:"
+    echo "   sudo systemctl status cse-collector"
+    echo "   sudo journalctl -u cse-collector -f"
     echo ""
     echo -e "${BLUE}Documentation: https://github.com/wvnispen/sonicwall-cse-reporter-addon${NC}"
     echo ""
@@ -542,6 +616,8 @@ main() {
         prompt_installation_type
     fi
     
+    prompt_api_key
+    
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${BLUE}  Starting Installation${NC}"
@@ -556,7 +632,7 @@ main() {
     fi
     
     install_loki
-    install_alloy
+    install_cse_collector
     configure_grafana_datasource
     create_dashboard_folder
     import_dashboards

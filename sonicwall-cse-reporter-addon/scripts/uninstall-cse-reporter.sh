@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # SonicWall CSE Reporter - Uninstall Script
-# Version 1.0.0
+# Version 2.0.0
 #
 
 set -e
@@ -12,17 +12,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -34,9 +26,7 @@ check_root() {
 print_banner() {
     echo -e "${BLUE}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
-    echo "║                                                               ║"
     echo "║         SonicWall CSE Reporter - Uninstaller                  ║"
-    echo "║                                                               ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -44,7 +34,7 @@ print_banner() {
 confirm_uninstall() {
     echo ""
     echo -e "${YELLOW}WARNING: This will remove the following components:${NC}"
-    echo "  - Grafana Alloy (syslog collector)"
+    echo "  - CSE Collector (API collection service)"
     echo "  - Loki (log storage)"
     echo "  - CSE dashboards from Grafana"
     echo ""
@@ -60,31 +50,47 @@ confirm_uninstall() {
     fi
 }
 
-remove_alloy() {
-    log_info "Removing Grafana Alloy..."
+remove_cse_collector() {
+    log_info "Removing CSE Collector..."
     
-    if systemctl is-active --quiet alloy 2>/dev/null; then
-        systemctl stop alloy
+    if systemctl is-active --quiet cse-collector 2>/dev/null; then
+        systemctl stop cse-collector
     fi
     
-    if systemctl is-enabled --quiet alloy 2>/dev/null; then
-        systemctl disable alloy
+    if systemctl is-enabled --quiet cse-collector 2>/dev/null; then
+        systemctl disable cse-collector
     fi
     
-    if dpkg -l | grep -q alloy; then
-        apt-get remove -y alloy
-        apt-get autoremove -y
+    rm -f /etc/systemd/system/cse-collector.service
+    rm -rf /opt/cse-collector
+    
+    # Ask about config/data removal
+    if [[ -d /etc/cse-collector ]]; then
+        echo ""
+        read -p "Remove CSE Collector configuration (includes API key)? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            rm -rf /etc/cse-collector
+            log_info "Configuration removed"
+        else
+            log_info "Configuration preserved at /etc/cse-collector"
+        fi
     fi
     
-    # Remove config and data
-    rm -rf /etc/alloy
-    rm -rf /var/lib/alloy
-    rm -rf /var/log/alloy
-    rm -rf /etc/systemd/system/alloy.service.d
+    if [[ -d /var/lib/cse-collector ]]; then
+        rm -rf /var/lib/cse-collector
+    fi
+    
+    rm -rf /var/log/cse-collector
+    
+    # Remove user
+    if id -u cse-collector &>/dev/null; then
+        userdel cse-collector 2>/dev/null || true
+    fi
     
     systemctl daemon-reload
     
-    log_info "Alloy removed"
+    log_info "CSE Collector removed"
 }
 
 remove_loki() {
@@ -106,7 +112,7 @@ remove_loki() {
     # Ask about data removal
     if [[ -d /var/lib/loki ]]; then
         echo ""
-        read -p "Remove Loki data directory (/var/lib/loki)? This deletes all log history. (y/N): " -n 1 -r
+        read -p "Remove Loki data directory? This deletes all log history. (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             rm -rf /var/lib/loki
@@ -129,7 +135,6 @@ remove_dashboards() {
     GRAFANA_URL="http://localhost:3000"
     GRAFANA_CREDS="admin:admin"
     
-    # Check if Grafana is running
     if ! curl -s -u "$GRAFANA_CREDS" "$GRAFANA_URL/api/health" | grep -q "ok"; then
         log_warn "Grafana not accessible, skipping dashboard removal"
         return
@@ -154,15 +159,6 @@ remove_dashboards() {
     fi
 }
 
-remove_firewall_rules() {
-    log_info "Removing firewall rules..."
-    
-    if command -v ufw &> /dev/null && ufw status | grep -q "active"; then
-        ufw delete allow 6514/tcp 2>/dev/null || true
-        log_info "Removed UFW rule for port 6514"
-    fi
-}
-
 print_summary() {
     echo ""
     echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
@@ -170,15 +166,10 @@ print_summary() {
     echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
     echo "The following components have been removed:"
-    echo "  ✓ Grafana Alloy"
+    echo "  ✓ CSE Collector"
     echo "  ✓ Loki"
     echo "  ✓ CSE dashboards"
-    echo "  ✓ Firewall rules"
     echo ""
-    if [[ -d /var/lib/loki ]]; then
-        echo -e "${YELLOW}Note: Loki data was preserved at /var/lib/loki${NC}"
-        echo ""
-    fi
 }
 
 main() {
@@ -191,9 +182,8 @@ main() {
     echo ""
     
     remove_dashboards
-    remove_alloy
+    remove_cse_collector
     remove_loki
-    remove_firewall_rules
     
     print_summary
 }
