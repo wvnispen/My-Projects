@@ -1,0 +1,190 @@
+// Grafana Alloy Configuration for SonicWall CSE Reporter
+// Version 1.0.0
+//
+// This configuration receives syslog messages from SonicWall CSE
+// and forwards them to Loki for storage and querying.
+
+// ============================================================================
+// Logging Configuration
+// ============================================================================
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ============================================================================
+// Syslog Receiver - SonicWall CSE
+// ============================================================================
+// Listens for syslog messages from CSE on TCP port 6514
+// Supports both RFC5424 and RFC3164 formats
+
+loki.source.syslog "cse_syslog" {
+  listener {
+    address  = "0.0.0.0:6514"
+    protocol = "tcp"
+    
+    // TLS configuration (uncomment for production)
+    // tls {
+    //   cert_file = "/etc/alloy/certs/server.crt"
+    //   key_file  = "/etc/alloy/certs/server.key"
+    // }
+    
+    labels = {
+      job      = "sonicwall-cse"
+      source   = "syslog"
+    }
+  }
+  
+  forward_to = [loki.process.cse_parser.receiver]
+}
+
+// ============================================================================
+// Log Processing Pipeline - CSE Parser
+// ============================================================================
+// Parses CSE syslog messages and extracts relevant fields
+
+loki.process "cse_parser" {
+  // Stage 1: Parse syslog format
+  stage.regex {
+    expression = `^<(?P<priority>\d+)>(?P<version>\d*)\s*(?P<timestamp>\S+)\s+(?P<hostname>\S+)\s+(?P<app_name>\S+)\s+(?P<proc_id>\S+)\s+(?P<msg_id>\S+)\s+(?P<structured_data>(?:\[.*?\])*|-)\s*(?P<message>.*)$`
+  }
+  
+  // Stage 2: Extract CSE-specific fields from message
+  // Authentication events
+  stage.regex {
+    source     = "message"
+    expression = `(?i)(?P<event_type>authentication|login|logout|access|policy|posture|session)`
+  }
+  
+  // User information
+  stage.regex {
+    source     = "message"
+    expression = `(?i)user[=:\s]+["']?(?P<user>[^"'\s,]+)["']?`
+  }
+  
+  // Source IP
+  stage.regex {
+    source     = "message"
+    expression = `(?i)(?:src|source|client|remote)[_\s]?(?:ip|addr(?:ess)?)[=:\s]+(?P<src_ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})`
+  }
+  
+  // Application/Resource accessed
+  stage.regex {
+    source     = "message"
+    expression = `(?i)(?:app(?:lication)?|resource|target)[=:\s]+["']?(?P<application>[^"'\s,]+)["']?`
+  }
+  
+  // Action/Result
+  stage.regex {
+    source     = "message"
+    expression = `(?i)(?:action|result|status)[=:\s]+["']?(?P<action>(?:allow|deny|block|success|fail(?:ed)?|granted|rejected))["']?`
+  }
+  
+  // Device posture
+  stage.regex {
+    source     = "message"
+    expression = `(?i)(?:posture|compliance|device)[_\s]?(?:status|state)?[=:\s]+["']?(?P<posture_status>compliant|non-compliant|unknown)["']?`
+  }
+  
+  // Stage 3: Set labels from extracted fields
+  stage.labels {
+    values = {
+      hostname      = "",
+      app_name      = "",
+      event_type    = "",
+      user          = "",
+      application   = "",
+      action        = "",
+      posture_status = "",
+    }
+  }
+  
+  // Stage 4: Add static labels
+  stage.static_labels {
+    values = {
+      product = "sonicwall-cse"
+    }
+  }
+  
+  // Stage 5: Timestamp parsing
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339"
+    fallback_formats = [
+      "2006-01-02T15:04:05.999999999Z07:00",
+      "2006-01-02T15:04:05Z",
+      "Jan  2 15:04:05",
+      "Jan 02 15:04:05",
+    ]
+  }
+  
+  // Stage 6: Output formatting
+  stage.output {
+    source = "message"
+  }
+  
+  forward_to = [loki.write.local.receiver]
+}
+
+// ============================================================================
+// Loki Writer
+// ============================================================================
+// Sends processed logs to local Loki instance
+
+loki.write "local" {
+  endpoint {
+    url = "http://localhost:3100/loki/api/v1/push"
+    
+    // Batching configuration
+    batch_wait    = "1s"
+    batch_size    = "1MiB"
+  }
+  
+  external_labels = {
+    cluster = "sonicwall-cse-reporter"
+  }
+}
+
+// ============================================================================
+// Optional: Additional Syslog Receiver on UDP
+// ============================================================================
+// Uncomment if CSE needs to send via UDP
+
+// loki.source.syslog "cse_syslog_udp" {
+//   listener {
+//     address  = "0.0.0.0:6514"
+//     protocol = "udp"
+//     
+//     labels = {
+//       job      = "sonicwall-cse"
+//       source   = "syslog-udp"
+//     }
+//   }
+//   
+//   forward_to = [loki.process.cse_parser.receiver]
+// }
+
+// ============================================================================
+// Optional: File-based log collection
+// ============================================================================
+// Uncomment to collect logs from local files (e.g., if using rsyslog)
+
+// local.file_match "cse_files" {
+//   path_targets = [{
+//     __address__ = "localhost"
+//     __path__    = "/var/log/cse/*.log"
+//   }]
+// }
+//
+// loki.source.file "cse_file_logs" {
+//   targets    = local.file_match.cse_files.targets
+//   forward_to = [loki.process.cse_parser.receiver]
+// }
+
+// ============================================================================
+// Alloy UI - Optional monitoring endpoint
+// ============================================================================
+// Access at http://localhost:12345 for debugging
+
+// prometheus.exporter.self "alloy" {
+// }
