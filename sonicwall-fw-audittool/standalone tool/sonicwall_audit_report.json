@@ -1,0 +1,117 @@
+{
+  "firewall_info": {
+    "model": "NSa 2800",
+    "firmware": "8.1.0-8017-R8779",
+    "ha_enabled": "No",
+    "factory_default": "off"
+  },
+  "audit_time": "2026-02-03T07:55:32.363664",
+  "summary": {
+    "MEDIUM": 3,
+    "HIGH": 3,
+    "INFO": 3,
+    "LOW": 1
+  },
+  "findings": [
+    {
+      "category": "Administrative Access",
+      "title": "Admin Login Timeout Too Long",
+      "severity": "MEDIUM",
+      "description": "Admin session timeout is set too high, increasing risk of session hijacking.",
+      "current_value": "999 minutes",
+      "recommended_value": "5-15 minutes",
+      "reference": "SonicWall Best Practices Guide - Administrative Access",
+      "remediation": "Navigate to Device > Settings > Administration and set 'Administrator inactivity timeout' to 15 minutes or less."
+    },
+    {
+      "category": "Administrative Access",
+      "title": "Multi-Factor Authentication Not Enforced",
+      "severity": "HIGH",
+      "description": "One-Time Password (TOTP) is not required for administrator login.",
+      "current_value": "MFA Disabled",
+      "recommended_value": "Enable TOTP for all administrators",
+      "reference": "CIS Controls - Use Multi-Factor Authentication",
+      "remediation": "Navigate to Device > Settings > Administration and enable 'Require OTP for login'."
+    },
+    {
+      "category": "Administrative Access",
+      "title": "Admin Session Preemption Not Configured",
+      "severity": "INFO",
+      "description": "Administrator session preemption behavior is not configured.",
+      "current_value": "Default (no preemption)",
+      "recommended_value": "Configure based on requirements",
+      "reference": "SonicWall Administration Guide",
+      "remediation": "Consider configuring admin session preemption policy."
+    },
+    {
+      "category": "Administrative Access",
+      "title": "Login Banner Not Configured",
+      "severity": "LOW",
+      "description": "A login warning banner is not configured.",
+      "current_value": "No banner configured",
+      "recommended_value": "Configure authorized use warning banner",
+      "reference": "NIST 800-53 AC-8 - System Use Notification",
+      "remediation": "Configure login banner via Device > Settings > Administration."
+    },
+    {
+      "category": "NAT Policies",
+      "title": "NAT Policies Review Recommended",
+      "severity": "INFO",
+      "description": "NAT policies are configured. Review to ensure only necessary services are exposed.",
+      "current_value": "2514 NAT-related settings found",
+      "recommended_value": "Review all inbound NAT policies",
+      "reference": "Network Security Best Practices",
+      "remediation": "Audit NAT policies to minimize attack surface."
+    },
+    {
+      "category": "Security Services",
+      "title": "DPI-SSL Client Inspection Disabled",
+      "severity": "HIGH",
+      "description": "DPI-SSL Client inspection is disabled. Encrypted traffic will not be inspected.",
+      "current_value": "DPI-SSL Client: Disabled",
+      "recommended_value": "Enable DPI-SSL for encrypted traffic inspection",
+      "reference": "SonicWall DPI-SSL Deployment Guide",
+      "remediation": "Enable DPI-SSL Client inspection under Firewall Settings > DPI-SSL."
+    },
+    {
+      "category": "Security Services",
+      "title": "DPI-SSL Server Inspection Disabled",
+      "severity": "MEDIUM",
+      "description": "DPI-SSL Server inspection is disabled.",
+      "current_value": "DPI-SSL Server: Disabled",
+      "recommended_value": "Enable DPI-SSL Server for inbound inspection",
+      "reference": "SonicWall DPI-SSL Deployment Guide",
+      "remediation": "Enable DPI-SSL Server inspection if hosting internal services."
+    },
+    {
+      "category": "Logging & Monitoring",
+      "title": "Syslog Server Configured",
+      "severity": "INFO",
+      "description": "Syslog server is configured to send logs to external server.",
+      "current_value": "Syslog: nsm-uswest-syslog.sonicwall.com",
+      "recommended_value": "Verify logs are being received",
+      "reference": "NIST 800-53 AU-4 - Audit Storage Capacity",
+      "remediation": "Verify syslog server is receiving logs and retention is adequate."
+    },
+    {
+      "category": "Logging & Monitoring",
+      "title": "Analytics Integration Not Configured",
+      "severity": "MEDIUM",
+      "description": "SonicWall Analytics/NSM integration is not configured.",
+      "current_value": "Analytics: Not configured",
+      "recommended_value": "Configure NSM or Analytics integration",
+      "reference": "SonicWall Network Security Manager Guide",
+      "remediation": "Consider enabling NSM or Analytics for centralized management."
+    },
+    {
+      "category": "SSL/TLS Security",
+      "title": "Weak TLS Ciphers Enabled",
+      "severity": "HIGH",
+      "description": "Found 18 weak or obsolete cipher suites enabled.",
+      "current_value": "Weak ciphers enabled: 18",
+      "recommended_value": "Disable weak ciphers (NULL, EXPORT, RC4, DES)",
+      "reference": "NIST TLS Implementation Guidelines",
+      "remediation": "Review and disable weak cipher suites in TLS settings."
+    }
+  ]
+}
