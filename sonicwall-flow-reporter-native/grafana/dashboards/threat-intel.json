@@ -38,8 +38,8 @@
       "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
       "id": 2,
       "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_ip" }], "query": "threat_detected:true", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Malicious IPs Contacted",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "src_ip.keyword" }], "query": "threat_direction.keyword:inbound", "refId": "A", "timeField": "@timestamp" }],
+      "title": "🔴 Inbound Attackers",
       "type": "stat"
     },
     {
@@ -51,8 +51,8 @@
       "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
       "id": 3,
       "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "src_ip" }], "query": "threat_detected:true", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Affected Internal IPs",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_ip.keyword" }], "query": "threat_direction.keyword:outbound", "refId": "A", "timeField": "@timestamp" }],
+      "title": "🟠 Outbound to Malicious",
       "type": "stat"
     },
     {
@@ -77,7 +77,7 @@
       "gridPos": { "h": 5, "w": 4, "x": 16, "y": 1 },
       "id": 5,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "service_risk:high OR service_risk:medium", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "service_risk.keyword:high OR service_risk.keyword:medium", "refId": "A", "timeField": "@timestamp" }],
       "title": "Risky Port Usage",
       "type": "stat"
     },
@@ -99,7 +99,31 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
       "id": 101,
       "panels": [],
-      "title": "Threat Detections",
+      "title": "🔴 Inbound Attacks (Malicious IPs attacking your network)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 7 },
+      "id": 10,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Connections" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip.keyword", "id": "3", "settings": { "order": "desc", "orderBy": "_count", "size": "20", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_ip.keyword", "id": "4", "settings": { "order": "desc", "orderBy": "_count", "size": "1", "min_doc_count": "1" }, "type": "terms" }, { "field": "src_threat.source.keyword", "id": "6", "settings": { "order": "desc", "orderBy": "_count", "size": "1", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }, { "id": "2", "type": "sum", "field": "bytes_total" }], "query": "threat_direction.keyword:inbound", "refId": "A", "timeField": "@timestamp" }],
+      "title": "⚠️ Inbound Attack Log - External Malicious IPs Attacking Your Network",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip.keyword": "Attacker IP", "dst_ip.keyword": "Your Destination", "src_threat.source.keyword": "Threat Feed", "Count": "Connections", "Sum bytes_total": "Bytes" } } }],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 104,
+      "panels": [],
+      "title": "🟠 Outbound Threats (Your network contacting malicious IPs)",
       "type": "row"
     },
     {
@@ -111,17 +135,17 @@
           { "matcher": { "id": "byName", "options": "Risk" }, "properties": [{ "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }, { "id": "max", "value": 100 }] }
         ]
       },
-      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 7 },
-      "id": 10,
-      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Count" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "id": "3", "settings": { "order": "desc", "orderBy": "_count", "size": "20", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_ip", "id": "4", "settings": { "order": "desc", "orderBy": "_count", "size": "1", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }, { "id": "2", "type": "sum", "field": "bytes_total" }, { "id": "5", "type": "max", "field": "risk_score" }], "query": "threat_detected:true", "refId": "A", "timeField": "@timestamp" }],
-      "title": "⚠️ Threat Detection Log - Internal IPs Contacting Malicious Destinations",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip": "Internal IP", "dst_ip": "Malicious Destination", "Count": "Connections", "Sum bytes_total": "Bytes", "Max risk_score": "Risk" } } }],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 18 },
+      "id": 11,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Connections" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip.keyword", "id": "3", "settings": { "order": "desc", "orderBy": "_count", "size": "20", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_ip.keyword", "id": "4", "settings": { "order": "desc", "orderBy": "_count", "size": "1", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_threat.source.keyword", "id": "6", "settings": { "order": "desc", "orderBy": "_count", "size": "1", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }, { "id": "2", "type": "sum", "field": "bytes_total" }, { "id": "5", "type": "max", "field": "risk_score" }], "query": "threat_direction.keyword:outbound", "refId": "A", "timeField": "@timestamp" }],
+      "title": "⚠️ Outbound Threat Log - Internal IPs Contacting Malicious Destinations",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip.keyword": "Internal IP", "dst_ip.keyword": "Malicious Destination", "dst_threat.source.keyword": "Threat Feed", "Count": "Connections", "Sum bytes_total": "Bytes", "Max risk_score": "Risk" } } }],
       "type": "table"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
       "id": 102,
       "panels": [],
       "title": "Risk Analysis",
@@ -137,16 +161,21 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Inbound Attacks" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Outbound Threats" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "High Risk Flows" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
       "id": 20,
       "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        { "alias": "Threat Detections", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "threat_detected:true", "refId": "A", "timeField": "@timestamp" },
-        { "alias": "High Risk Flows", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "risk_score:>=50", "refId": "B", "timeField": "@timestamp", "hide": false }
+        { "alias": "Inbound Attacks", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "threat_direction.keyword:inbound", "refId": "A", "timeField": "@timestamp" },
+        { "alias": "Outbound Threats", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "threat_direction.keyword:outbound", "refId": "B", "timeField": "@timestamp", "hide": false },
+        { "alias": "High Risk Flows", "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "risk_score:>=50", "refId": "C", "timeField": "@timestamp", "hide": false }
       ],
-      "title": "Threats & High Risk Over Time",
+      "title": "Threats Over Time (Inbound vs Outbound)",
       "type": "timeseries"
     },
     {
@@ -155,10 +184,10 @@
         "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 20 },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 29 },
       "id": 21,
       "options": { "displayLabels": ["name", "value"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "service_name", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "10", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "service_risk:high OR service_risk:medium", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "service_name.keyword", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "10", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "service_risk.keyword:high OR service_risk.keyword:medium", "refId": "A", "timeField": "@timestamp" }],
       "title": "Risky Services Used",
       "type": "piechart"
     },
@@ -168,16 +197,16 @@
         "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 20 },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 29 },
       "id": 22,
       "options": { "displayLabels": ["name", "value"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_threat.source", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "10", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "threat_detected:true", "refId": "A", "timeField": "@timestamp" }],
-      "title": "Threat Sources",
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_threat.source.keyword", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "10", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "_exists_:src_threat", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Threat Feed Sources (Inbound)",
       "type": "piechart"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
       "id": 103,
       "panels": [],
       "title": "High Risk Flow Details",
@@ -192,12 +221,12 @@
           { "matcher": { "id": "byName", "options": "Risk Score" }, "properties": [{ "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }, { "id": "max", "value": 100 }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "orange", "value": 50 }, { "color": "red", "value": 70 }] } }] }
         ]
       },
-      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 29 },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 38 },
       "id": 30,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Risk Score" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "id": "3", "settings": { "order": "desc", "orderBy": "5", "size": "30", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_port", "id": "4", "settings": { "order": "desc", "orderBy": "5", "size": "1", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }, { "id": "2", "type": "sum", "field": "bytes_total" }, { "id": "5", "type": "max", "field": "risk_score" }], "query": "risk_score:>=30", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip.keyword", "id": "3", "settings": { "order": "desc", "orderBy": "5", "size": "30", "min_doc_count": "1" }, "type": "terms" }, { "field": "dst_port", "id": "4", "settings": { "order": "desc", "orderBy": "5", "size": "1", "min_doc_count": "1" }, "type": "terms" }, { "field": "service_name.keyword", "id": "7", "settings": { "order": "desc", "orderBy": "_count", "size": "1", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }, { "id": "2", "type": "sum", "field": "bytes_total" }, { "id": "5", "type": "max", "field": "risk_score" }], "query": "risk_score:>=30", "refId": "A", "timeField": "@timestamp" }],
       "title": "High Risk Internal IPs & Ports",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip": "Internal IP", "dst_port": "Dest Port", "Count": "Flows", "Sum bytes_total": "Bytes", "Max risk_score": "Risk Score" } } }],
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip.keyword": "Internal IP", "dst_port": "Dest Port", "service_name.keyword": "Service", "Count": "Flows", "Sum bytes_total": "Bytes", "Max risk_score": "Risk Score" } } }],
       "type": "table"
     }
   ],
@@ -229,6 +258,6 @@
   "timezone": "",
   "title": "SonicWall - Threat Intelligence",
   "uid": "swfr-threats",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

@@ -25,7 +25,7 @@
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "id": 1,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_geo.country_code" }], "query": "_exists_:dst_geo.country_code", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_geo.country_code.keyword" }], "query": "_exists_:dst_geo.country_code", "refId": "A", "timeField": "@timestamp" }],
       "title": "Countries Reached",
       "type": "stat"
     },
@@ -38,7 +38,7 @@
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
       "id": 2,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_geo.city" }], "query": "_exists_:dst_geo.city", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_geo.city.keyword" }], "query": "_exists_:dst_geo.city", "refId": "A", "timeField": "@timestamp" }],
       "title": "Cities Reached",
       "type": "stat"
     },
@@ -64,7 +64,7 @@
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
       "id": 4,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_asn.organization" }], "query": "_exists_:dst_asn.organization", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "id": "2", "settings": { "interval": "auto" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "cardinality", "field": "dst_asn.organization.keyword" }], "query": "_exists_:dst_asn.organization", "refId": "A", "timeField": "@timestamp" }],
       "title": "Organizations/ISPs",
       "type": "stat"
     },
@@ -111,7 +111,7 @@
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
       "id": 10,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "15", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name.keyword", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "15", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
       "title": "Traffic by Destination Country",
       "type": "piechart"
     },
@@ -124,7 +124,7 @@
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
       "id": 11,
       "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "15", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name.keyword", "id": "2", "settings": { "order": "desc", "orderBy": "_count", "size": "15", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
       "title": "Connections by Destination Country",
       "type": "piechart"
     },
@@ -147,9 +147,9 @@
       "gridPos": { "h": 12, "w": 12, "x": 0, "y": 17 },
       "id": 20,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "30", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }, { "id": "2", "type": "count" }, { "id": "4", "type": "cardinality", "field": "dst_ip" }, { "id": "5", "type": "cardinality", "field": "src_ip" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name.keyword", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "30", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }, { "id": "2", "type": "count" }, { "id": "4", "type": "cardinality", "field": "dst_ip" }, { "id": "5", "type": "cardinality", "field": "src_ip" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
       "title": "All Countries - Traffic Details",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_geo.country_name": "Country", "Sum bytes_total": "Bytes", "Count": "Flows", "Unique count dst_ip": "Destinations", "Unique count src_ip": "Users" } } }],
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_geo.country_name.keyword": "Country", "Sum bytes_total": "Bytes", "Count": "Flows", "Unique count dst_ip": "Destinations", "Unique count src_ip": "Users" } } }],
       "type": "table"
     },
     {
@@ -163,9 +163,9 @@
       "gridPos": { "h": 12, "w": 12, "x": 12, "y": 17 },
       "id": 21,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_asn.organization", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "30", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }, { "id": "2", "type": "count" }, { "id": "4", "type": "cardinality", "field": "dst_ip" }], "query": "_exists_:dst_asn.organization", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_asn.organization.keyword", "id": "3", "settings": { "order": "desc", "orderBy": "1", "size": "30", "min_doc_count": "1" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }, { "id": "2", "type": "count" }, { "id": "4", "type": "cardinality", "field": "dst_ip" }], "query": "_exists_:dst_asn.organization", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Organizations/ISPs",
-      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_asn.organization": "Organization", "Sum bytes_total": "Bytes", "Count": "Flows", "Unique count dst_ip": "IPs" } } }],
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "dst_asn.organization.keyword": "Organization", "Sum bytes_total": "Bytes", "Count": "Flows", "Unique count dst_ip": "IPs" } } }],
       "type": "table"
     },
     {
@@ -191,7 +191,7 @@
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
       "id": 30,
       "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "10", "min_doc_count": "1" }, "type": "terms" }, { "field": "@timestamp", "id": "3", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "dst_geo.country_name.keyword", "id": "2", "settings": { "order": "desc", "orderBy": "1", "size": "10", "min_doc_count": "1" }, "type": "terms" }, { "field": "@timestamp", "id": "3", "settings": { "interval": "auto", "min_doc_count": "0" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "sum", "field": "bytes_total" }], "query": "_exists_:dst_geo.country_name", "refId": "A", "timeField": "@timestamp" }],
       "title": "Top Countries Traffic Over Time",
       "type": "timeseries"
     }

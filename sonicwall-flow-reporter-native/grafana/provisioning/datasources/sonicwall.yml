@@ -1,0 +1,45 @@
+apiVersion: 1
+
+datasources:
+  - name: Elasticsearch-Flows
+    type: elasticsearch
+    access: proxy
+    url: http://127.0.0.1:9200
+    database: "flows-raw"
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: "9.0.0"
+      maxConcurrentShardRequests: 5
+      logMessageField: ""
+      logLevelField: ""
+    isDefault: true
+
+  - name: Elasticsearch-Hourly
+    type: elasticsearch
+    access: proxy
+    url: http://127.0.0.1:9200
+    database: "flows-hourly-*"
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: "9.0.0"
+    isDefault: false
+
+  - name: Elasticsearch-Daily
+    type: elasticsearch
+    access: proxy
+    url: http://127.0.0.1:9200
+    database: "flows-daily-*"
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: "9.0.0"
+    isDefault: false
+
+  - name: Elasticsearch-Identity
+    type: elasticsearch
+    access: proxy
+    url: http://127.0.0.1:9200
+    database: "identity-*"
+    jsonData:
+      timeField: "updated_at"
+      esVersion: "9.0.0"
+    isDefault: false

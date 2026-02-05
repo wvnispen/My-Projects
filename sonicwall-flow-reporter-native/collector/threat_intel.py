@@ -279,7 +279,11 @@ class ThreatIntelligence:
             if threat_info:
                 flow['src_threat'] = threat_info
                 flow['threat_detected'] = True
-                flow['threat_direction'] = flow.get('threat_direction', '') + 'inbound'
+                # Set direction - 'both' if already outbound, otherwise 'inbound'
+                if flow.get('threat_direction') == 'outbound':
+                    flow['threat_direction'] = 'both'
+                else:
+                    flow['threat_direction'] = 'inbound'
         
         return flow
     

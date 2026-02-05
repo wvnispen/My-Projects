@@ -1,8 +1,16 @@
 # SonicWall Flow Reporter - Native Linux Installation
 
-**Version 1.4.0**
+**Version 1.4.1**
 
 Real-time network flow monitoring and reporting for SonicWall firewalls using IPFIX/NetFlow.
+
+## Changes in v1.4.1
+
+- **Fixed**: Threat dashboard now properly separates Inbound Attacks vs Outbound Threats
+- **Fixed**: Dashboard field names now use `.keyword` suffix for Elasticsearch aggregations
+- **Fixed**: Threat direction field no longer concatenates incorrectly
+- **Improved**: Threat Sources panel now correctly shows which feed detected each threat
+- **Improved**: Dashboard labels clearly indicate attacker IPs vs internal IPs
 
 ## NEW in v1.4.0 - Value-Added Features
 
