@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommsGateway</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f1117;
+    --surface:  #1a1d27;
+    --border:   #2a2d3e;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --sms:      #3b82f6;
+    --tg:       #06b6d4;
+    --wa:       #22c55e;
+    --error:    #ef4444;
+    --ok:       #22c55e;
+    --radius:   10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    gap: 1.5rem;
+  }
+
+  header {
+    text-align: center;
+  }
+  header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
+  header p  { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 520px;
+  }
+  .card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 1rem; }
+
+  /* Status grid */
+  .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  .status-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+  .status-item .label { color: var(--muted); margin-bottom: 0.4rem; }
+  .status-item .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    margin: 0 auto 0.4rem;
+    transition: background 0.3s;
+  }
+  .status-item .dot.ok    { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .status-item .dot.error { background: var(--error); }
+  .status-item .detail { color: var(--muted); font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Channel tabs */
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+  .tab {
+    flex: 1; padding: 0.6rem; border-radius: 8px; border: 2px solid var(--border);
+    background: var(--bg); color: var(--muted); font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .tab:hover { border-color: var(--muted); color: var(--text); }
+  .tab.active-sms  { border-color: var(--sms);  color: var(--sms);  background: #1e2d4a; }
+  .tab.active-telegram { border-color: var(--tg); color: var(--tg); background: #0d2d35; }
+  .tab.active-whatsapp { border-color: var(--wa); color: var(--wa); background: #0d2d1a; }
+
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+  input, textarea {
+    width: 100%; padding: 0.65rem 0.85rem;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 0.9rem;
+    outline: none; transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus { border-color: var(--muted); }
+  textarea { min-height: 90px; resize: vertical; }
+
+  .api-key-row { position: relative; }
+  .api-key-row input { padding-right: 2.5rem; font-family: monospace; font-size: 0.8rem; }
+  .eye-btn {
+    position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0;
+  }
+
+  .send-btn {
+    width: 100%; padding: 0.75rem;
+    border: none; border-radius: 8px;
+    background: var(--sms); color: #fff;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+    margin-top: 0.5rem;
+  }
+  .send-btn:hover   { opacity: 0.88; }
+  .send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .send-btn.ch-telegram { background: var(--tg); }
+  .send-btn.ch-whatsapp { background: var(--wa); }
+
+  /* Result */
+  .result {
+    margin-top: 1rem; padding: 0.75rem 1rem;
+    border-radius: 8px; font-size: 0.85rem;
+    display: none; word-break: break-all;
+  }
+  .result.ok    { background: #0d2d1a; border: 1px solid var(--ok);    color: var(--ok); }
+  .result.error { background: #2d0d0d; border: 1px solid var(--error); color: var(--error); }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .refresh-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.75rem;
+    cursor: pointer; float: right; transition: color 0.15s;
+  }
+  .refresh-btn:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ CommsGateway</h1>
+  <p>Send SMS · Telegram · WhatsApp</p>
+</header>
+
+<!-- Status card -->
+<div class="card">
+  <h2>Channel Status <button class="refresh-btn" onclick="loadStatus()">↻ Refresh</button></h2>
+  <div class="status-grid">
+    <div class="status-item">
+      <div class="dot" id="dot-sms"></div>
+      <div class="label">SMS</div>
+      <div class="detail" id="detail-sms">—</div>
+    </div>
+    <div class="status-item">
+      <div class="dot" id="dot-telegram"></div>
+      <div class="label">Telegram</div>
+      <div class="detail" id="detail-telegram">—</div>
+    </div>
+    <div class="status-item">
+      <div class="dot" id="dot-whatsapp"></div>
+      <div class="label">WhatsApp</div>
+      <div class="detail" id="detail-whatsapp">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Send card -->
+<div class="card">
+  <h2>Send Message</h2>
+
+  <!-- Channel tabs -->
+  <div class="tabs">
+    <div class="tab active-sms" data-ch="sms"       onclick="selectChannel('sms')">📱 SMS</div>
+    <div class="tab"            data-ch="telegram"   onclick="selectChannel('telegram')">✈️ Telegram</div>
+    <div class="tab"            data-ch="whatsapp"   onclick="selectChannel('whatsapp')">💬 WhatsApp</div>
+  </div>
+
+  <!-- API Key -->
+  <div class="form-group">
+    <label>API Key</label>
+    <div class="api-key-row">
+      <input type="password" id="api-key" placeholder="X-API-Key from .env" autocomplete="off">
+      <button class="eye-btn" onclick="toggleKey()" title="Show/hide">👁</button>
+    </div>
+  </div>
+
+  <!-- To -->
+  <div class="form-group">
+    <label id="to-label">To (phone number)</label>
+    <input type="text" id="to" placeholder="+27821234567">
+  </div>
+
+  <!-- Message -->
+  <div class="form-group">
+    <label>Message</label>
+    <textarea id="message" placeholder="Type your message..."></textarea>
+  </div>
+
+  <button class="send-btn" id="send-btn" onclick="sendMessage()">Send via SMS</button>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+  let activeChannel = 'sms';
+
+  // ── Persist API key in localStorage ─────────────────────────────────────
+  const keyInput = document.getElementById('api-key');
+  keyInput.value = localStorage.getItem('cg_api_key') || '';
+  keyInput.addEventListener('input', () => localStorage.setItem('cg_api_key', keyInput.value));
+
+  function toggleKey() {
+    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  }
+
+  // ── Channel selection ────────────────────────────────────────────────────
+  const placeholders = {
+    sms:       { to: '+27821234567',    label: 'To (phone number)',  btn: 'Send via SMS',      cls: '' },
+    telegram:  { to: 'chat_id (leave blank for default)', label: 'Chat ID (optional)', btn: 'Send via Telegram', cls: 'ch-telegram' },
+    whatsapp:  { to: '27821234567 (no +)', label: 'To (phone number)', btn: 'Send via WhatsApp', cls: 'ch-whatsapp' },
+  };
+
+  function selectChannel(ch) {
+    activeChannel = ch;
+    document.querySelectorAll('.tab').forEach(t => {
+      t.className = 'tab' + (t.dataset.ch === ch ? ` active-${ch}` : '');
+    });
+    const p = placeholders[ch];
+    document.getElementById('to').placeholder    = p.to;
+    document.getElementById('to-label').textContent = p.label;
+    const btn = document.getElementById('send-btn');
+    btn.textContent = p.btn;
+    btn.className   = `send-btn ${p.cls}`;
+    document.getElementById('result').style.display = 'none';
+  }
+
+  // ── Send ─────────────────────────────────────────────────────────────────
+  async function sendMessage() {
+    const key     = keyInput.value.trim();
+    const to      = document.getElementById('to').value.trim();
+    const message = document.getElementById('message').value.trim();
+    const btn     = document.getElementById('send-btn');
+    const result  = document.getElementById('result');
+
+    if (!key)     { showResult('error', 'Enter your API key first.'); return; }
+    if (!message) { showResult('error', 'Message cannot be empty.'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span>Sending…`;
+    result.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/v1/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': key },
+        body: JSON.stringify({ channel: activeChannel, to, message }),
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        showResult('ok', `✓ Sent via ${activeChannel}`);
+      } else {
+        showResult('error', `✗ ${data.reason || 'Unknown error'}`);
+      }
+    } catch (e) {
+      showResult('error', `✗ Network error: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+      selectChannel(activeChannel); // restore button text
+    }
+  }
+
+  function showResult(type, text) {
+    const el = document.getElementById('result');
+    el.className = `result ${type}`;
+    el.textContent = text;
+    el.style.display = 'block';
+  }
+
+  // ── Status ───────────────────────────────────────────────────────────────
+  async function loadStatus() {
+    const key = keyInput.value.trim();
+    if (!key) return;
+    try {
+      const res = await fetch('/api/v1/status', { headers: { 'X-API-Key': key } });
+      const data = await res.json();
+
+      setStatus('sms',       data.esp32?.reachable,           data.esp32?.operator || (data.esp32?.reachable ? 'online' : 'offline'));
+      setStatus('telegram',  data.telegram?.ok,               data.telegram?.bot   || (data.telegram?.ok ? 'online' : 'offline'));
+      setStatus('whatsapp',  data.whatsapp?.session === 'WORKING', data.whatsapp?.session || 'unknown');
+    } catch {
+      ['sms','telegram','whatsapp'].forEach(ch => setStatus(ch, false, 'error'));
+    }
+  }
+
+  function setStatus(ch, ok, detail) {
+    const dot    = document.getElementById(`dot-${ch}`);
+    const detEl  = document.getElementById(`detail-${ch}`);
+    dot.className  = `dot ${ok ? 'ok' : 'error'}`;
+    detEl.textContent = detail;
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  selectChannel('sms');
+  loadStatus();
+  setInterval(loadStatus, 30000); // auto-refresh every 30s
+</script>
+</body>
+</html>

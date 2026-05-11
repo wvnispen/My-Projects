@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.diyelectronics.co.za)",
+      "Bash(lsusb)",
+      "WebSearch",
+      "WebFetch(domain:www.communica.co.za)",
+      "WebFetch(domain:www.waveshare.com)",
+      "WebFetch(domain:www.bobshop.co.za)",
+      "WebFetch(domain:lilygo.cc)",
+      "WebFetch(domain:www.robotics.org.za)",
+      "WebFetch(domain:www.makerfabs.com)",
+      "WebFetch(domain:wiki.makerfabs.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:wiki.lilygo.cc)",
+      "Bash(chmod +x /home/devadmin/CommsGateway/bridge/deploy.sh)"
+    ]
+  }
+}
