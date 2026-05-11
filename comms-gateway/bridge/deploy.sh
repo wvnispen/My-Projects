@@ -16,10 +16,10 @@ warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()     { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 # ── Config — edit REPO_URL before running ──────────────────────────────────
-REPO_URL="https://github.com/wvnispen/CommsGateway.git"
+REPO_URL="https://github.com/wvnispen/My-Projects.git"
 REPO_BRANCH="main"
 REPO_DIR="/opt/commsgateway"          # full git clone lives here
-APP_DIR="$REPO_DIR/bridge"            # uvicorn runs from here
+APP_DIR="$REPO_DIR/comms-gateway/bridge"   # uvicorn runs from here
 VENV_DIR="$APP_DIR/venv"
 APP_USER="commsgateway"
 SERVICE_NAME="commsgateway"
