@@ -10,6 +10,12 @@ async def health():
     return {"status": "ok"}
 
 
+@router.get("/api/v1/key")
+async def get_key():
+    """Return the API key for the local web UI. No auth required — internal network only."""
+    return {"api_key": settings.api_key}
+
+
 @router.get("/api/v1/status")
 async def status():
     result = {}
