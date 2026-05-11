@@ -1,6 +1,6 @@
 # CommsGateway — Handover Doc
 
-**Last updated:** 2026-05-11
+**Last updated:** 2026-05-11 (v0.4)
 **Full design doc:** `docs/DESIGN.md`
 
 ---
@@ -16,7 +16,7 @@
 | Telegram | ✓ **Live** | @commsgateway_bot, tested |
 | WhatsApp | ⏳ Pending | Need dedicated SIM + phone |
 | SMS / ESP32 | ⏳ Pending | Board ordered, not arrived |
-| Web UI | ✓ Live | http://192.168.8.18/ |
+| Web UI | ✓ Live | http://192.168.8.18/ — auto-loads API key |
 
 ---
 
@@ -83,7 +83,7 @@ ssh commsgateway 'sudo bash /opt/commsgateway/comms-gateway/bridge/deploy.sh --u
 
 - **Bot:** @commsgateway_bot
 - **Token:** in `/opt/commsgateway/comms-gateway/bridge/.env`
-- **Default chat ID:** 685138995 (Wynand van Nispen personal chat)
+- **Default chat ID:** 685138995 (Wynand van Nispen — Telegram username @NosferatuZA)
 - **Test:**
   ```bash
   ssh commsgateway '
@@ -93,6 +93,11 @@ ssh commsgateway 'sudo bash /opt/commsgateway/comms-gateway/bridge/deploy.sh --u
     -H "X-API-Key: $KEY" \
     -d "{\"channel\":\"telegram\",\"message\":\"test\"}"'
   ```
+
+**Sending to other people:**
+- They must message @commsgateway_bot first
+- Use their **numeric chat ID** (not @username — that only works for public channels)
+- Find their ID via: `https://api.telegram.org/bot<TOKEN>/getUpdates`
 
 ---
 

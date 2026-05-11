@@ -1,6 +1,6 @@
 # CommsGateway — Design Document
 
-**Version:** 0.3  
+**Version:** 0.4  
 **Date:** 2026-05-11  
 **Author:** Wynand van Nispen  
 **Status:** Bridge deployed — Telegram live ✓ | WhatsApp pending QR | SMS pending hardware
@@ -178,7 +178,9 @@ All hardware-specific pin values live in `firmware/config/board.h`. Switching bo
 POST /api/v1/send        ← requires X-API-Key header
 GET  /api/v1/health      ← no auth
 GET  /api/v1/status      ← requires X-API-Key header
-GET  /                   ← web test UI
+GET  /api/v1/key         ← no auth — returns API key for local web UI
+GET  /                   ← web test UI (auto-loads key from /api/v1/key)
+GET  /api/docs           ← FastAPI auto-generated docs
 ```
 
 **POST /api/v1/send**
@@ -262,8 +264,13 @@ To complete WhatsApp setup:
 ### 4.4 Telegram Bot ✓
 
 **Bot:** @commsgateway_bot
-**Chat ID:** 685138995 (Wynand van Nispen — personal chat)
+**Chat ID:** 685138995 (Wynand van Nispen — Telegram username @NosferatuZA)
 **Status:** Fully configured and tested — messages delivering
+
+**Sending to other users:**
+- The recipient must message @commsgateway_bot first to open the conversation
+- Use their **numeric chat ID** in the `to` field — `@username` format only works for public channels/supergroups, not private chats
+- Their chat ID appears in `getUpdates` after they message the bot
 
 ---
 
@@ -358,8 +365,9 @@ sudo bash /opt/commsgateway/comms-gateway/bridge/deploy.sh --update
 - [x] WAHA Docker container running
 - [x] Telegram bot created (@commsgateway_bot)
 - [x] Telegram tested end-to-end ✓
-- [x] Web UI live at http://192.168.8.18/
+- [x] Web UI live at http://192.168.8.18/ — auto-loads API key from server
 - [x] Code pushed to github.com/wvnispen/My-Projects
+- [x] deploy.sh hardened: admin user docker group + sudoers, inline comment strip, safe.directory fix
 
 ### Phase 2 — WhatsApp ⏳ In progress
 - [ ] Get dedicated SIM + old Android phone
