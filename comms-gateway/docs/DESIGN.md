@@ -1,9 +1,9 @@
 # CommsGateway — Design Document
 
-**Version:** 0.2  
+**Version:** 0.3  
 **Date:** 2026-05-11  
 **Author:** Wynand van Nispen  
-**Status:** Draft — hardware confirmed, firmware pending
+**Status:** Bridge deployed — Telegram live ✓ | WhatsApp pending QR | SMS pending hardware
 
 ---
 
@@ -16,7 +16,7 @@ CommsGateway is a self-hosted, locally-run messaging gateway that replaces exter
 - No external relay services — all message delivery is local or via official APIs
 - Single API endpoint for Home Assistant, regardless of channel
 - ESP32-based SMS hardware — low power, no server required for SMS
-- WhatsApp via a local bridge (WAHA) running on Proxmox
+- WhatsApp via a local WAHA bridge (Docker) on the commsgateway VM
 - Telegram via the official Bot API (no bridge needed)
 - Easy to swap ESP32 hardware without changing any other component
 - API-key authenticated — no unauthenticated access even on the local network
@@ -32,7 +32,7 @@ CommsGateway is a self-hosted, locally-run messaging gateway that replaces exter
 
 ## 2. Hardware
 
-### Confirmed: LILYGO T-A7670G-S3-Standard (ordered)
+### Confirmed: LILYGO T-A7670G-S3-Standard (ordered, not yet arrived)
 
 | Spec | Value |
 |------|-------|
@@ -44,38 +44,36 @@ CommsGateway is a self-hosted, locally-run messaging gateway that replaces exter
 | Battery | 18650 holder + solar charge input |
 | WiFi | 802.11 b/g/n |
 | Bluetooth | 5.0 LE |
-| Camera | OV2640 interface (Standard variant) |
+| Camera | OV2640 interface (Standard variant) — not used in v1 |
 | Data rate | 10 Mbps down / 5 Mbps up (Cat-1 — sufficient for all messaging) |
 
 ### Confirmed GPIO pin map (from LilyGO-T-A76XX utilities.h, `LILYGO_A7670X_S3_STAN`)
 
-| Function | GPIO |
-|----------|------|
-| Modem TX (ESP→modem) | **4** |
-| Modem RX (modem→ESP) | **5** |
-| Modem DTR | 7 |
-| Modem RING | 6 |
-| Modem PWRKEY | **46** |
-| Modem power-save | 42 |
-| GPS RX (NMEA in) | **48** |
-| GPS TX | 45 |
-| GPS PPS | 17 |
-| GPS enable | 1 (active HIGH) |
-| Audio PA enable | 3 (active HIGH) |
-| Battery ADC | 8 |
-| Solar ADC | 18 |
-| I2C SDA | 3 |
-| I2C SCL | 2 |
-| SD MISO | 13 |
-| SD MOSI | 11 |
-| SD SCK | 12 |
-| SD CS | 10 |
+| Function | GPIO | Notes |
+|----------|------|-------|
+| Modem TX (ESP→modem) | **4** | |
+| Modem RX (modem→ESP) | **5** | |
+| Modem DTR | 7 | |
+| Modem RING | 6 | |
+| Modem PWRKEY | **46** | pulse LOW to power on/off |
+| Modem power-save | 42 | |
+| Modem RST | — | not broken out on Standard variant |
+| GPS RX (NMEA in) | **48** | separate UART — raw NMEA stream |
+| GPS TX | 45 | |
+| GPS PPS | 17 | |
+| GPS enable | 1 | drive HIGH to enable |
+| Audio PA enable | 3 | drive HIGH to enable speaker |
+| Battery ADC | 8 | |
+| Solar ADC | 18 | |
+| I2C SDA | 3 | |
+| I2C SCL | 2 | |
+| SD MISO/MOSI/SCK/CS | 13/11/12/10 | |
 
-> Note: The Standard board has GPS on its **own UART** (GPIO 48/45), separate from the modem AT command UART (GPIO 4/5). This means clean NMEA sentences without AT command interleaving — read GPS as a normal serial stream.
+> Note: GPS is on its **own UART** (GPIO 48/45), separate from the modem AT command UART (GPIO 4/5). Read GPS as a normal NMEA serial stream — no AT command interleaving.
 
-### Porting effort between boards
+### Board portability
 
-All hardware-specific values (UART pins, power key, reset pin, modem AT variant) live in a single `config/board.h`. Switching is a single `#define` change and a rebuild. See Section 5.
+All hardware-specific pin values live in `firmware/config/board.h`. Switching boards is a single `#define` change and rebuild — no other code changes needed.
 
 ---
 
@@ -83,416 +81,257 @@ All hardware-specific values (UART pins, power key, reset pin, modem AT variant)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Home Assistant (192.168.1.x)                           │
-│                                                         │
-│  notify.comms_sms / notify.comms_telegram /             │
-│  notify.comms_whatsapp                                  │
+│  Home Assistant (192.168.x.x)                           │
+│  rest_command.comms_send_sms / telegram / whatsapp      │
 └───────────────────────┬─────────────────────────────────┘
-                        │ HTTPS POST /api/v1/send
+                        │ HTTP POST /api/v1/send
                         │ X-API-Key: <secret>
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Proxmox LXC — commsgateway-bridge                      │
-│  Ubuntu 24.04 LXC  |  192.168.1.Y  |  port 8080        │
+│  commsgateway VM — Ubuntu 26.04                         │
+│  192.168.8.18  |  nginx → uvicorn port 8080             │
 │                                                         │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  CommsGateway API  (Python FastAPI)              │   │
-│  │  - Auth middleware (API key validation)          │   │
-│  │  - Rate limiting                                 │   │
+│  │  /opt/commsgateway/comms-gateway/bridge/         │   │
+│  │  - X-API-Key auth middleware                     │   │
 │  │  - Channel router                                │   │
 │  └────────┬──────────────┬──────────────────────────┘   │
 │           │              │                               │
-│           │ HTTP POST    │ python-telegram-bot           │
 │           ▼              ▼                               │
 │  ┌─────────────┐  ┌─────────────────────────────────┐   │
 │  │ WAHA        │  │  Telegram Bot API               │   │
-│  │ (Docker)    │  │  api.telegram.org               │   │
-│  │ port 3000   │  │  (official, no bridge needed)   │   │
-│  │             │  └─────────────────────────────────┘   │
-│  │ WhatsApp    │                                         │
-│  │ Web session │                                         │
+│  │ (Docker)    │  │  api.telegram.org  ✓ live       │   │
+│  │ :3000       │  │  Bot: @commsgateway_bot          │   │
+│  │ session:    │  └─────────────────────────────────┘   │
+│  │ STOPPED     │                                         │
+│  │ (needs QR)  │                                         │
 │  └─────────────┘                                         │
 └─────────────────────────────────────────────────────────┘
                         │ HTTP POST /send/sms
                         │ (internal network only)
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│  ESP32 Device  (192.168.1.Z, WiFi)                      │
-│  LILYGO T-SIM7600G-H  or  WVS A7670E                   │
+│  ESP32 Device  (IP TBD — DHCP reservation pending)      │
+│  LILYGO T-A7670G-S3-Standard  ← not yet arrived        │
 │                                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  ESP32 Firmware  (Arduino/PlatformIO)            │   │
-│  │  - HTTP server (port 80)                         │   │
-│  │  - IP whitelist (bridge LXC IP only)             │   │
-│  │  - AT command driver                             │   │
-│  └───────────────────────┬──────────────────────────┘   │
-│                          │ UART (AT commands)            │
-│                          ▼                               │
-│              SIM7600G-H / A7670E modem                  │
-│                          │                               │
-└──────────────────────────┼──────────────────────────────┘
-                           │ LTE (Vodacom/MTN/Cell C)
-                           ▼
-                    Recipient's phone (SMS)
+│  ESP32 firmware → UART → A7670G modem → LTE cellular   │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Channel routing summary
+### Channel status
 
-| Channel | Path |
-|---------|------|
-| SMS | HA → Bridge API → ESP32 HTTP → AT+CMGS → cellular |
-| Telegram | HA → Bridge API → python-telegram-bot → api.telegram.org |
-| WhatsApp | HA → Bridge API → WAHA (local Docker) → WA Web protocol |
+| Channel | Status | Notes |
+|---------|--------|-------|
+| Telegram | ✓ **Live** | @commsgateway_bot, chat_id 685138995 |
+| WhatsApp | ⏳ Pending | WAHA running, QR scan needed — dedicated SIM + phone required |
+| SMS | ⏳ Pending | Board not yet arrived |
 
 ### Fallback behaviour
 
-| Failure | Fallback |
+| Failure | Response |
 |---------|---------|
-| ESP32 unreachable | Bridge returns `503`, logs error, no silent drop |
-| WAHA session expired | Bridge returns `503` with reason `whatsapp_session_expired` |
-| Telegram Bot API unreachable | Bridge returns `503`, HA automation can retry |
-| Bridge LXC down | HA automations fail — considered acceptable for v1 |
+| ESP32 unreachable | `{"status":"error","reason":"esp32_unreachable"}` |
+| WAHA session expired | `{"status":"error","reason":"..."}` |
+| Telegram API unreachable | `{"status":"error","reason":"..."}` |
 
 ---
 
 ## 4. Component Specifications
 
-### 4.1 CommsGateway Bridge (Proxmox LXC)
+### 4.1 CommsGateway Bridge (VM)
 
-**Runtime:** Python 3.12, FastAPI, uvicorn  
-**Process manager:** systemd  
-**LXC:** Ubuntu 24.04, 1 CPU, 512MB RAM, 4GB disk
+**Runtime:** Python 3.14, FastAPI, uvicorn
+**Process manager:** systemd (`commsgateway.service`)
+**Reverse proxy:** nginx on port 80
+**VM:** Ubuntu 26.04, 192.168.8.18, hostname: commsgateway, user: netadmin
 
-#### Directory layout
+#### Actual directory layout on server
 
 ```
-/opt/commsgateway/
-├── main.py              # FastAPI app, startup
-├── config.py            # Settings loaded from .env
-├── routers/
-│   ├── send.py          # POST /api/v1/send
-│   └── health.py        # GET /api/v1/health, /api/v1/status
-├── channels/
-│   ├── sms.py           # Forwards to ESP32 HTTP
-│   ├── telegram.py      # python-telegram-bot
-│   └── whatsapp.py      # WAHA REST client
-├── middleware/
-│   ├── auth.py          # API key header validation
-│   └── ratelimit.py     # Per-key rate limiting
-├── .env                 # Secrets — never committed
-└── requirements.txt
-```
-
-#### Environment variables (.env)
-
-```env
-API_KEY=<random 32-byte hex>
-ESP32_URL=http://192.168.1.Z
-ESP32_TIMEOUT=10
-
-TELEGRAM_BOT_TOKEN=<from BotFather>
-TELEGRAM_DEFAULT_CHAT_ID=<your chat ID>
-
-WAHA_URL=http://127.0.0.1:3000
-WAHA_API_KEY=<waha api key>
-WAHA_SESSION=default
-WAHA_DEFAULT_NUMBER=27821234567
-
-RATE_LIMIT_PER_MINUTE=30
-LOG_LEVEL=INFO
+/opt/commsgateway/                    ← git clone of My-Projects repo
+└── comms-gateway/
+    └── bridge/                       ← uvicorn WorkingDirectory
+        ├── main.py
+        ├── config.py
+        ├── requirements.txt
+        ├── .env                      ← secrets, gitignored
+        ├── venv/                     ← Python venv, gitignored
+        ├── logs/gateway.log
+        ├── routers/
+        │   ├── send.py               ← POST /api/v1/send
+        │   ├── health.py             ← GET /api/v1/health, /api/v1/status
+        │   └── ui.py                 ← GET / → web test UI
+        ├── channels/
+        │   ├── sms.py                ← → ESP32 HTTP
+        │   ├── telegram.py           ← → api.telegram.org
+        │   └── whatsapp.py           ← → WAHA :3000
+        ├── middleware/
+        │   └── auth.py               ← X-API-Key validation
+        └── static/
+            └── index.html            ← web test UI
 ```
 
 #### API endpoints
 
 ```
-POST /api/v1/send
-GET  /api/v1/health
-GET  /api/v1/status
+POST /api/v1/send        ← requires X-API-Key header
+GET  /api/v1/health      ← no auth
+GET  /api/v1/status      ← requires X-API-Key header
+GET  /                   ← web test UI
 ```
 
-**POST /api/v1/send — request**
+**POST /api/v1/send**
 
 ```json
-{
-  "channel": "sms | telegram | whatsapp",
-  "to": "+27821234567",
-  "message": "Your alarm triggered at 03:14"
-}
+{ "channel": "sms | telegram | whatsapp", "to": "+27821234567", "message": "text" }
+```
+`to` is optional — falls back to the default configured per channel in `.env`.
+
+#### Environment variables (.env)
+
+```env
+API_KEY=<auto-generated 32-byte hex>
+
+ESP32_URL=http://<TBD>       # set when board arrives and gets DHCP reservation
+ESP32_TIMEOUT=10
+
+TELEGRAM_BOT_TOKEN=<configured>
+TELEGRAM_DEFAULT_CHAT_ID=685138995
+
+WAHA_URL=http://127.0.0.1:3000
+WAHA_API_KEY=<auto-generated>
+WAHA_SESSION=default
+WAHA_DEFAULT_NUMBER=<TBD — dedicated WA number>
+
+RATE_LIMIT_PER_MINUTE=30
 ```
 
-- `to` is optional — falls back to the default configured per channel
-- `channel` is required
+#### Useful commands on server
 
-**POST /api/v1/send — response**
-
-```json
-{
-  "status": "ok",
-  "channel": "sms",
-  "delivery_id": "abc123"
-}
-```
-
-On error:
-
-```json
-{
-  "status": "error",
-  "channel": "sms",
-  "reason": "esp32_unreachable"
-}
-```
-
-**GET /api/v1/status — response**
-
-```json
-{
-  "esp32": { "reachable": true, "signal_dbm": -73, "operator": "Vodacom" },
-  "telegram": { "ok": true, "bot_name": "CommsBot" },
-  "whatsapp": { "ok": true, "session": "CONNECTED" }
-}
+```bash
+sudo systemctl status commsgateway       # service status
+sudo systemctl restart commsgateway      # restart after .env changes
+sudo tail -f /opt/commsgateway/comms-gateway/bridge/logs/gateway.log
+docker ps                                # WAHA container status
+docker logs -f waha                      # WAHA logs
 ```
 
 ---
 
 ### 4.2 ESP32 Firmware
 
-**Framework:** Arduino (PlatformIO)  
-**Libraries:** `TinyGSM`, `ArduinoJson`, `ESPAsyncWebServer` (or `WebServer`)
+**Framework:** Arduino (PlatformIO)
+**Libraries:** `TinyGSM`, `ArduinoJson`, `ESPAsyncWebServer`, `AsyncTCP`
+**Status:** Not written yet — starts when board arrives
 
-#### Features
+Firmware responsibilities:
+1. PWRKEY pulse on GPIO 46 → power on modem
+2. TinyGSM on Serial1 (GPIO 4/5) at 115200
+3. Wait for network registration
+4. Connect to WiFi
+5. `POST /send/sms` → AT+CMGS → cellular
+6. `GET /status` → signal, operator, uptime, battery ADC
 
-- HTTP server on port 80, LAN-only
-- IP whitelist — accepts requests only from the bridge LXC IP
-- AT command driver via TinyGSM (abstracts modem differences)
-- SMS send via `AT+CMGS`
-- Status endpoint: signal strength, operator, registration state
-- Watchdog timer — reboots if modem becomes unresponsive
-- Static IP via WiFi config (or DHCP reservation)
-
-#### Firmware endpoint
-
-```
-POST /send/sms
-Content-Type: application/json
-
-{ "to": "+27821234567", "message": "Test" }
-```
-
-```
-GET /status
-
-{ "signal": -73, "operator": "Vodacom ZA", "registered": true, "uptime": 3600 }
-```
-
-#### Board config header
-
-```cpp
-// config/board.h — only file that changes between hardware variants
-
-#define BOARD_LILYGO_A7670G_S3_STANDARD   // ← active board
-
-// ── LILYGO T-A7670G-S3-Standard (confirmed, ordered) ──────────────
-#ifdef BOARD_LILYGO_A7670G_S3_STANDARD
-  #define MODEM_TX              4
-  #define MODEM_RX              5
-  #define MODEM_DTR             7
-  #define MODEM_RING            6
-  #define MODEM_PWRKEY         46
-  #define MODEM_POWER_SAVE     42
-  #define MODEM_RST            -1   // not broken out on Standard
-  #define GPS_RX               48   // separate GPS UART (NMEA)
-  #define GPS_TX               45
-  #define GPS_PPS              17
-  #define GPS_ENABLE            1   // drive HIGH to enable GPS
-  #define BOARD_BAT_ADC         8
-  #define BOARD_SOLAR_ADC      18
-  #define BOARD_SDA             3
-  #define BOARD_SCL             2
-  #define TINY_GSM_MODEM_A7670
-#endif
-
-// ── WVS ESP32-S3-A7670E (Communica, if/when acquired) ─────────────
-#ifdef BOARD_WAVESHARE_A7670E_S3
-  #define MODEM_TX             17
-  #define MODEM_RX             18
-  #define MODEM_DTR            -1
-  #define MODEM_RING           -1
-  #define MODEM_PWRKEY          5
-  #define MODEM_RST            -1
-  #define GPS_RX               -1   // GPS via AT commands on modem UART
-  #define BOARD_BAT_ADC        -1
-  #define BOARD_SOLAR_ADC      -1
-  #define TINY_GSM_MODEM_A7670
-#endif
-```
+Board config is in `firmware/config/board.h` — single `#define` controls all pin assignments.
 
 ---
 
-### 4.3 WhatsApp Bridge — WAHA
+### 4.3 WhatsApp — WAHA
 
-**What:** WAHA (WhatsApp HTTP API) — open source, self-hosted, Docker-based.  
-**Why not Baileys/whatsapp-web.js directly:** WAHA wraps both and exposes a stable REST API, survives session drops, and is actively maintained. No need to write session management code ourselves.
-
-**Deployment:** Docker container on the Proxmox host, or inside the same LXC as the bridge if the LXC has Docker installed.
+**Container:** `devlikeapro/waha:latest`, running as Docker on commsgateway VM
+**Status:** Container up, session STOPPED — QR scan pending
 
 ```
-docker run -d \
-  --name waha \
-  --restart unless-stopped \
+docker run -d --name waha --restart unless-stopped \
   -p 127.0.0.1:3000:3000 \
   -v /opt/waha/sessions:/app/.sessions \
-  -e WHATSAPP_API_KEY=<secret> \
+  -e WHATSAPP_API_KEY=<key> \
   devlikeapro/waha:latest
 ```
 
-Key points:
-- Bound to `127.0.0.1:3000` only — not exposed on the LAN
-- Session persists across restarts via volume mount
-- First run: scan QR code once via `http://localhost:3000/dashboard`
-- The phone that scans must remain connected to WhatsApp — use a dedicated number/account
-- Free core tier supports one session, which is all we need
-
-**WAHA send call (made by bridge):**
-
-```
-POST http://127.0.0.1:3000/api/sendText
-X-Api-Key: <secret>
-
-{
-  "chatId": "27821234567@c.us",
-  "text": "Your alarm triggered",
-  "session": "default"
-}
-```
+To complete WhatsApp setup:
+1. Get a dedicated SIM + old Android phone
+2. Register WhatsApp on that number
+3. SSH tunnel: `ssh -L 3000:127.0.0.1:3000 netadmin@192.168.8.18`
+4. Open `http://localhost:3000/dashboard` → start session → scan QR
+5. Session persists in `/opt/waha/sessions/` across restarts
 
 ---
 
-### 4.4 Telegram Bot
+### 4.4 Telegram Bot ✓
 
-No bridge needed. The bot sends messages directly to the Telegram Bot API via HTTPS.
-
-**Setup:**
-1. Create bot via @BotFather → get `BOT_TOKEN`
-2. Start a conversation with the bot → get your `CHAT_ID` (via `api.telegram.org/bot<token>/getUpdates`)
-3. Store both in `.env`
-
-The bridge's `channels/telegram.py` uses `python-telegram-bot` (async) to call `bot.send_message(chat_id, text)`.
-
-Group chats, channels, and individual chats are all supported — just change the `chat_id`.
+**Bot:** @commsgateway_bot
+**Chat ID:** 685138995 (Wynand van Nispen — personal chat)
+**Status:** Fully configured and tested — messages delivering
 
 ---
 
 ## 5. Home Assistant Integration
 
-Add to `configuration.yaml` (or a split `rest_commands.yaml`):
-
 ```yaml
+# configuration.yaml
 rest_command:
   comms_send_sms:
-    url: "https://192.168.1.Y:8080/api/v1/send"
+    url: "http://192.168.8.18/api/v1/send"
     method: POST
     headers:
       X-API-Key: !secret commsgateway_api_key
       Content-Type: application/json
-    payload: >
-      {"channel": "sms", "to": "{{ to }}", "message": "{{ message }}"}
+    payload: '{"channel":"sms","to":"{{ to }}","message":"{{ message }}"}'
 
   comms_send_telegram:
-    url: "https://192.168.1.Y:8080/api/v1/send"
+    url: "http://192.168.8.18/api/v1/send"
     method: POST
     headers:
       X-API-Key: !secret commsgateway_api_key
       Content-Type: application/json
-    payload: >
-      {"channel": "telegram", "message": "{{ message }}"}
+    payload: '{"channel":"telegram","message":"{{ message }}"}'
 
   comms_send_whatsapp:
-    url: "https://192.168.1.Y:8080/api/v1/send"
+    url: "http://192.168.8.18/api/v1/send"
     method: POST
     headers:
       X-API-Key: !secret commsgateway_api_key
       Content-Type: application/json
-    payload: >
-      {"channel": "whatsapp", "to": "{{ to }}", "message": "{{ message }}"}
+    payload: '{"channel":"whatsapp","to":"{{ to }}","message":"{{ message }}"}'
 ```
 
-`secrets.yaml`:
-
 ```yaml
-commsgateway_api_key: <your 32-byte hex key>
-```
-
-Example automation:
-
-```yaml
-automation:
-  - alias: "Alert - Front door after midnight"
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.front_door
-        to: "on"
-    condition:
-      - condition: time
-        after: "00:00:00"
-        before: "06:00:00"
-    action:
-      - service: rest_command.comms_send_sms
-        data:
-          to: "+27821234567"
-          message: "Front door opened at {{ now().strftime('%H:%M') }}"
-      - service: rest_command.comms_send_whatsapp
-        data:
-          to: "+27821234567"
-          message: "⚠ Front door opened at {{ now().strftime('%H:%M') }}"
+# secrets.yaml
+commsgateway_api_key: <from /opt/commsgateway/comms-gateway/bridge/.env>
 ```
 
 ---
 
-## 6. Network & Deployment
+## 6. Network & Infrastructure
 
-### IP assignments (static / DHCP reservation)
+| Device | Hostname | IP | User | Notes |
+|--------|----------|----|------|-------|
+| Dev PC | castelvania | 192.168.8.11 | devadmin | Claude Code runs here |
+| CommsGateway VM | commsgateway | 192.168.8.18 | netadmin | Ubuntu 26.04 VM |
+| ESP32 board | — | TBD | — | DHCP reservation when board arrives |
 
-| Device | IP | Notes |
-|--------|----|-------|
-| Home Assistant VM | 192.168.1.x | existing |
-| Proxmox host | 192.168.1.x | existing |
-| commsgateway-bridge LXC | 192.168.1.Y | new, DHCP reservation |
-| ESP32 device | 192.168.1.Z | DHCP reservation by MAC |
+### SSH access
 
-### Proxmox LXC spec
+```bash
+# From castelvania (already configured in ~/.ssh/config)
+ssh commsgateway        # → netadmin@192.168.8.18
 
-```
-CT ID:      <next available>
-Hostname:   commsgateway-bridge
-OS:         Ubuntu 24.04 LXC template
-CPU:        1 core
-RAM:        512 MB
-Disk:       8 GB (for WAHA session data)
-Network:    vmbr0, static or DHCP reservation
-Features:   nesting=1 (required if running Docker inside LXC)
+# WAHA dashboard tunnel
+ssh -L 3000:127.0.0.1:3000 commsgateway
+# then open http://localhost:3000/dashboard
 ```
 
-### Systemd unit — bridge service
+### Code repository
 
-```ini
-# /etc/systemd/system/commsgateway.service
-[Unit]
-Description=CommsGateway Bridge API
-After=network-online.target docker.service
-Wants=network-online.target
+**Repo:** `github.com/wvnispen/My-Projects`
+**Path:** `comms-gateway/` subdirectory
+**Clone on server:** `/opt/commsgateway/` (full repo clone)
 
-[Service]
-Type=simple
-User=comms
-WorkingDirectory=/opt/commsgateway
-EnvironmentFile=/opt/commsgateway/.env
-ExecStart=/opt/commsgateway/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8080
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+**Update deployed code:**
+```bash
+sudo bash /opt/commsgateway/comms-gateway/bridge/deploy.sh --update
 ```
 
 ---
@@ -503,56 +342,58 @@ WantedBy=multi-user.target
 |---------|-----------|
 | Unauthenticated API calls | `X-API-Key` header required on every request |
 | API key in HA config | Stored in `secrets.yaml`, not inline |
-| WAHA exposed on LAN | Bound to `127.0.0.1` only, not reachable externally |
-| ESP32 called by anyone | IP whitelist — only accepts from bridge LXC IP |
-| SMS cost abuse | Rate limit: 30 requests/minute per API key |
-| Secrets in code | All secrets via `.env`, `.env` in `.gitignore` |
-| HTTPS for bridge | Self-signed cert via uvicorn, or nginx reverse proxy with Let's Encrypt |
-| WhatsApp ToS | WAHA uses WhatsApp Web protocol — unofficial, same risk as WhatsApp Web on a browser. Use a dedicated number. |
+| WAHA exposed on LAN | Bound to `127.0.0.1:3000` only |
+| ESP32 open to LAN | IP whitelist — bridge IP only (when firmware written) |
+| SMS cost abuse | Rate limit: 30 requests/minute |
+| Secrets in git | `.env` and `secrets.h` in `.gitignore` — never committed |
+| WhatsApp ToS | WAHA uses WA Web protocol — use a dedicated number |
 
 ---
 
 ## 8. Build Phases
 
-### Phase 1 — ESP32 SMS (hardware arrives)
-- [ ] Flash firmware to LILYGO T-SIM7600G-H
-- [ ] Verify SIM, LTE registration, signal on Vodacom
-- [ ] Test `POST /send/sms` from curl
-- [ ] Set static IP / DHCP reservation
+### Phase 1 — Bridge + Telegram ✓ Complete
+- [x] Ubuntu 26.04 VM deployed on Proxmox (192.168.8.18)
+- [x] FastAPI bridge deployed via deploy.sh
+- [x] WAHA Docker container running
+- [x] Telegram bot created (@commsgateway_bot)
+- [x] Telegram tested end-to-end ✓
+- [x] Web UI live at http://192.168.8.18/
+- [x] Code pushed to github.com/wvnispen/My-Projects
 
-### Phase 2 — Proxmox bridge + Telegram
-- [ ] Create Ubuntu 24.04 LXC on Proxmox
-- [ ] Deploy FastAPI bridge service
-- [ ] Configure Telegram bot, verify send
-- [ ] Wire up SMS routing to ESP32 endpoint
-- [ ] Add API key auth + rate limiter
+### Phase 2 — WhatsApp ⏳ In progress
+- [ ] Get dedicated SIM + old Android phone
+- [ ] Register WhatsApp on dedicated number
+- [ ] SSH tunnel to WAHA dashboard, scan QR
+- [ ] Test WhatsApp send via web UI
+- [ ] Add `WAHA_DEFAULT_NUMBER` to `.env`
 
-### Phase 3 — WhatsApp via WAHA
-- [ ] Install Docker in LXC (or on Proxmox host)
-- [ ] Deploy WAHA container, scan QR, verify session
-- [ ] Implement WhatsApp channel in bridge
-- [ ] Test end-to-end from curl
+### Phase 3 — ESP32 SMS ⏳ Awaiting hardware
+- [ ] Board arrives (LILYGO T-A7670G-S3-Standard)
+- [ ] Insert SIM, run AT smoke test
+- [ ] Write `firmware/src/main.cpp`
+- [ ] Flash and verify SMS send
+- [ ] Set DHCP reservation, update `ESP32_URL` in `.env`
 
 ### Phase 4 — Home Assistant integration
-- [ ] Add `rest_command` entries
-- [ ] Add `commsgateway_api_key` to `secrets.yaml`
+- [ ] Add `rest_command` entries (IPs now confirmed — see Section 5)
+- [ ] Add API key to `secrets.yaml`
 - [ ] Test from HA developer tools
-- [ ] Wire into existing alarm/alert automations
+- [ ] Wire into alarm/alert automations
 
-### Phase 5 — Hardware swap (optional, if Communica WVS A7670E restocks)
-- [ ] Update `board.h` — flip `#define` to `BOARD_WAVESHARE_A7670E_S3`
-- [ ] Verify Waveshare pinout from their schematic PDF (GPIO 17/18 assumed, confirm)
-- [ ] Rebuild and flash
-- [ ] Smoke test SMS — no other changes needed
+### Phase 5 — Hardware swap (optional)
+- [ ] If WVS A7670E restocks at Communica (R1,090)
+- [ ] Flip `#define` in `board.h`, rebuild, flash
+- [ ] No other changes needed
 
 ---
 
-## 9. Open Questions
+## 9. Open Items
 
-| Question | Decision needed |
-|----------|----------------|
-| Which Proxmox node hosts the LXC? | Baobab cluster — which node has the most headroom? |
-| WhatsApp number | Dedicated SIM for WA, or existing personal number? Dedicated is safer (won't get primary number banned) |
-| Telegram chat ID | Personal chat, group, or channel? |
-| HTTPS for bridge | Self-signed (HA can verify with `verify_ssl: false`) or nginx + Let's Encrypt? |
-| SMS SIM provider | Vodacom/MTN PAYG — which has better data+SMS bundle for the board SIM? |
+| Item | Status |
+|------|--------|
+| WhatsApp dedicated SIM + phone | ⏳ Pending |
+| `WAHA_DEFAULT_NUMBER` in .env | ⏳ Set after WA setup |
+| ESP32 board delivery | ⏳ Ordered |
+| ESP32 DHCP reservation + `ESP32_URL` | ⏳ Set when board arrives |
+| HA `rest_command` config | ⏳ Ready to add (IP confirmed: 192.168.8.18) |
