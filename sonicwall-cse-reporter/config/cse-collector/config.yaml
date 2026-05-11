@@ -1,0 +1,13 @@
+# SonicWall CSE Events Collector Configuration v2.3.0
+cse_api_url: "https://net.banyanops.com/api/v1/events"
+loki_url: "http://localhost:3100/loki/api/v1/push"
+poll_interval_seconds: 60
+batch_size: 1000
+lookback_minutes: 1440
+cursor_file: "/var/lib/cse-collector/cursor.json"
+log_level: "INFO"
+log_file: "/var/log/cse-collector/collector.log"
+labels:
+  job: "sonicwall-cse"
+  source: "api"
+  product: "sonicwall-cse"

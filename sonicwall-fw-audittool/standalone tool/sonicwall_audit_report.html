@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicWall Configuration Audit Report</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 10px; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .info-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .info-card h3 { color: #667eea; margin-bottom: 5px; font-size: 0.9rem; text-transform: uppercase; }
+        .info-card p { font-size: 1.2rem; font-weight: 600; }
+        .summary { background: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .summary h2 { margin-bottom: 20px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .severity-card { padding: 20px; border-radius: 8px; text-align: center; color: white; }
+        .severity-card.critical { background: #dc3545; }
+        .severity-card.high { background: #fd7e14; }
+        .severity-card.medium { background: #ffc107; color: #333; }
+        .severity-card.low { background: #17a2b8; }
+        .severity-card.info { background: #28a745; }
+        .severity-card .count { font-size: 2rem; font-weight: 700; }
+        .severity-card .label { font-size: 0.9rem; text-transform: uppercase; }
+        .findings { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .category { margin-bottom: 30px; }
+        .category h2 { color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 20px; }
+        .finding { border-left: 4px solid; padding: 20px; margin-bottom: 15px; background: #fafafa; border-radius: 0 8px 8px 0; }
+        .finding.critical { border-color: #dc3545; }
+        .finding.high { border-color: #fd7e14; }
+        .finding.medium { border-color: #ffc107; }
+        .finding.low { border-color: #17a2b8; }
+        .finding.info { border-color: #28a745; }
+        .finding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .finding-title { font-weight: 600; font-size: 1.1rem; }
+        .finding-severity { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: white; }
+        .finding-severity.critical { background: #dc3545; }
+        .finding-severity.high { background: #fd7e14; }
+        .finding-severity.medium { background: #ffc107; color: #333; }
+        .finding-severity.low { background: #17a2b8; }
+        .finding-severity.info { background: #28a745; }
+        .finding-detail { margin: 10px 0; }
+        .finding-detail strong { color: #555; }
+        .finding-remediation { background: #e8f5e9; padding: 15px; border-radius: 5px; margin-top: 10px; }
+        .finding-remediation strong { color: #2e7d32; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SonicWall Configuration Audit Report</h1>
+            <p>Generated: 2026-02-03T07:55:32.363664</p>
+        </div>
+        <div class="info-grid">
+            <div class="info-card"><h3>Model</h3><p>NSa 2800</p></div><div class="info-card"><h3>Firmware</h3><p>8.1.0-8017-R8779</p></div><div class="info-card"><h3>Ha Enabled</h3><p>No</p></div><div class="info-card"><h3>Factory Default</h3><p>off</p></div>
+        </div>
+        <div class="summary">
+            <h2>Executive Summary</h2>
+            <div class="summary-grid">
+                <div class="severity-card critical"><div class="count">0</div><div class="label">CRITICAL</div></div><div class="severity-card high"><div class="count">3</div><div class="label">HIGH</div></div><div class="severity-card medium"><div class="count">3</div><div class="label">MEDIUM</div></div><div class="severity-card low"><div class="count">1</div><div class="label">LOW</div></div><div class="severity-card info"><div class="count">3</div><div class="label">INFO</div></div>
+            </div>
+        </div>
+        <div class="findings">
+            <h2>Detailed Findings</h2>
+<div class="category"><h2>Administrative Access</h2><div class="finding high">
+                    <div class="finding-header">
+                        <span class="finding-title">Multi-Factor Authentication Not Enforced</span>
+                        <span class="finding-severity high">HIGH</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> One-Time Password (TOTP) is not required for administrator login.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> MFA Disabled</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Enable TOTP for all administrators</div>
+                    <div class="finding-detail"><strong>Reference:</strong> CIS Controls - Use Multi-Factor Authentication</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Navigate to Device > Settings > Administration and enable 'Require OTP for login'.</div>
+                </div><div class="finding medium">
+                    <div class="finding-header">
+                        <span class="finding-title">Admin Login Timeout Too Long</span>
+                        <span class="finding-severity medium">MEDIUM</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> Admin session timeout is set too high, increasing risk of session hijacking.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> 999 minutes</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> 5-15 minutes</div>
+                    <div class="finding-detail"><strong>Reference:</strong> SonicWall Best Practices Guide - Administrative Access</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Navigate to Device > Settings > Administration and set 'Administrator inactivity timeout' to 15 minutes or less.</div>
+                </div><div class="finding low">
+                    <div class="finding-header">
+                        <span class="finding-title">Login Banner Not Configured</span>
+                        <span class="finding-severity low">LOW</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> A login warning banner is not configured.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> No banner configured</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Configure authorized use warning banner</div>
+                    <div class="finding-detail"><strong>Reference:</strong> NIST 800-53 AC-8 - System Use Notification</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Configure login banner via Device > Settings > Administration.</div>
+                </div><div class="finding info">
+                    <div class="finding-header">
+                        <span class="finding-title">Admin Session Preemption Not Configured</span>
+                        <span class="finding-severity info">INFO</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> Administrator session preemption behavior is not configured.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> Default (no preemption)</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Configure based on requirements</div>
+                    <div class="finding-detail"><strong>Reference:</strong> SonicWall Administration Guide</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Consider configuring admin session preemption policy.</div>
+                </div></div><div class="category"><h2>NAT Policies</h2><div class="finding info">
+                    <div class="finding-header">
+                        <span class="finding-title">NAT Policies Review Recommended</span>
+                        <span class="finding-severity info">INFO</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> NAT policies are configured. Review to ensure only necessary services are exposed.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> 2514 NAT-related settings found</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Review all inbound NAT policies</div>
+                    <div class="finding-detail"><strong>Reference:</strong> Network Security Best Practices</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Audit NAT policies to minimize attack surface.</div>
+                </div></div><div class="category"><h2>Security Services</h2><div class="finding high">
+                    <div class="finding-header">
+                        <span class="finding-title">DPI-SSL Client Inspection Disabled</span>
+                        <span class="finding-severity high">HIGH</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> DPI-SSL Client inspection is disabled. Encrypted traffic will not be inspected.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> DPI-SSL Client: Disabled</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Enable DPI-SSL for encrypted traffic inspection</div>
+                    <div class="finding-detail"><strong>Reference:</strong> SonicWall DPI-SSL Deployment Guide</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Enable DPI-SSL Client inspection under Firewall Settings > DPI-SSL.</div>
+                </div><div class="finding medium">
+                    <div class="finding-header">
+                        <span class="finding-title">DPI-SSL Server Inspection Disabled</span>
+                        <span class="finding-severity medium">MEDIUM</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> DPI-SSL Server inspection is disabled.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> DPI-SSL Server: Disabled</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Enable DPI-SSL Server for inbound inspection</div>
+                    <div class="finding-detail"><strong>Reference:</strong> SonicWall DPI-SSL Deployment Guide</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Enable DPI-SSL Server inspection if hosting internal services.</div>
+                </div></div><div class="category"><h2>Logging & Monitoring</h2><div class="finding medium">
+                    <div class="finding-header">
+                        <span class="finding-title">Analytics Integration Not Configured</span>
+                        <span class="finding-severity medium">MEDIUM</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> SonicWall Analytics/NSM integration is not configured.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> Analytics: Not configured</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Configure NSM or Analytics integration</div>
+                    <div class="finding-detail"><strong>Reference:</strong> SonicWall Network Security Manager Guide</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Consider enabling NSM or Analytics for centralized management.</div>
+                </div><div class="finding info">
+                    <div class="finding-header">
+                        <span class="finding-title">Syslog Server Configured</span>
+                        <span class="finding-severity info">INFO</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> Syslog server is configured to send logs to external server.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> Syslog: nsm-uswest-syslog.sonicwall.com</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Verify logs are being received</div>
+                    <div class="finding-detail"><strong>Reference:</strong> NIST 800-53 AU-4 - Audit Storage Capacity</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Verify syslog server is receiving logs and retention is adequate.</div>
+                </div></div><div class="category"><h2>SSL/TLS Security</h2><div class="finding high">
+                    <div class="finding-header">
+                        <span class="finding-title">Weak TLS Ciphers Enabled</span>
+                        <span class="finding-severity high">HIGH</span>
+                    </div>
+                    <div class="finding-detail"><strong>Description:</strong> Found 18 weak or obsolete cipher suites enabled.</div>
+                    <div class="finding-detail"><strong>Current Value:</strong> Weak ciphers enabled: 18</div>
+                    <div class="finding-detail"><strong>Recommended:</strong> Disable weak ciphers (NULL, EXPORT, RC4, DES)</div>
+                    <div class="finding-detail"><strong>Reference:</strong> NIST TLS Implementation Guidelines</div>
+                    <div class="finding-remediation"><strong>Remediation:</strong> Review and disable weak cipher suites in TLS settings.</div>
+                </div></div>
+        </div>
+        <div class="footer">
+            <p>SonicWall Configuration Auditor | Based on industry best practices and security guidelines</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Import Result{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem; color: #1a5f7a;">Import Complete</h2>
+
+<div class="card">
+    {% if imported > 0 %}
+    <div class="alert alert-success">
+        ✅ Successfully imported <strong>{{ imported }}</strong> mappings
+    </div>
+    {% endif %}
+    
+    {% if errors %}
+    <div class="alert alert-error">
+        ⚠️ {{ errors|length }} errors occurred during import:
+        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+            {% for error in errors[:10] %}
+            <li>{{ error }}</li>
+            {% endfor %}
+            {% if errors|length > 10 %}
+            <li>... and {{ errors|length - 10 }} more errors</li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <a href="/mappings" class="btn">View Mappings</a>
+        <a href="/import" class="btn btn-secondary">Import More</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}SonicWall SSO{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem; color: #1a5f7a;">SonicWall SSO Integration</h2>
+
+{% if sso_enabled %}
+<div class="card">
+    <h2>SSO Status</h2>
+    <div class="alert alert-success">
+        ✅ SonicWall SSO integration is <strong>enabled</strong>
+    </div>
+    
+    <table style="margin: 1rem 0;">
+        <tr>
+            <th style="width: 150px;">Firewall Host</th>
+            <td>{{ sso_host }}</td>
+        </tr>
+        <tr>
+            <th>API User</th>
+            <td>{{ sso_user }}</td>
+        </tr>
+    </table>
+    
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <button onclick="syncSSO()" class="btn">🔄 Sync Now</button>
+        <button onclick="testConnection()" class="btn btn-secondary">🔍 Test Connection</button>
+    </div>
+    
+    <div id="sync-result" style="margin-top: 1rem;"></div>
+</div>
+
+<div class="card">
+    <h2>How SSO Sync Works</h2>
+    <ol style="margin-left: 1.5rem;">
+        <li style="margin-bottom: 0.5rem;">Connects to SonicWall API using configured credentials</li>
+        <li style="margin-bottom: 0.5rem;">Retrieves currently logged-in users from SSO/Directory Services</li>
+        <li style="margin-bottom: 0.5rem;">Creates/updates identity mappings for each active user session</li>
+        <li style="margin-bottom: 0.5rem;">SSO mappings are tagged with source "SSO" for easy identification</li>
+    </ol>
+    
+    <p style="margin-top: 1rem; color: #666;">
+        <strong>Note:</strong> SSO-synced mappings represent current active sessions. 
+        Manual mappings are not affected by SSO sync.
+    </p>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="alert alert-error">
+        ⚠️ SonicWall SSO integration is <strong>not configured</strong>
+    </div>
+    
+    <h2 style="margin-top: 1.5rem;">Enable SSO Integration</h2>
+    <p>To enable SonicWall SSO integration, set the following environment variables:</p>
+    
+    <pre style="background: #f5f5f5; padding: 1rem; border-radius: 6px; margin: 1rem 0;">SONICWALL_SSO_ENABLED=true
+SONICWALL_HOST=192.168.1.1
+SONICWALL_API_PORT=443
+SONICWALL_API_USER=admin
+SONICWALL_API_PASSWORD=your-password</pre>
+    
+    <p>Then restart the Identity UI container:</p>
+    <pre style="background: #f5f5f5; padding: 1rem; border-radius: 6px;">docker compose restart identity-ui</pre>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>SonicWall Configuration</h2>
+    <p>Ensure your SonicWall firewall has:</p>
+    <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+        <li style="margin-bottom: 0.5rem;">API access enabled (Manage → Appliance → Base Settings → API)</li>
+        <li style="margin-bottom: 0.5rem;">An admin user with API access permissions</li>
+        <li style="margin-bottom: 0.5rem;">SSO/Directory Services configured (Users → Settings → SSO)</li>
+    </ol>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function syncSSO() {
+    const result = document.getElementById('sync-result');
+    result.innerHTML = '<p>Syncing...</p>';
+    
+    fetch('/sso/sync', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                result.innerHTML = '<div class="alert alert-success">✅ Synced ' + data.synced + ' users</div>';
+            } else {
+                result.innerHTML = '<div class="alert alert-error">❌ ' + (data.detail || 'Sync failed') + '</div>';
+            }
+        })
+        .catch(err => {
+            result.innerHTML = '<div class="alert alert-error">❌ Error: ' + err + '</div>';
+        });
+}
+
+function testConnection() {
+    const result = document.getElementById('sync-result');
+    result.innerHTML = '<p>Testing connection...</p>';
+    
+    fetch('/sso/test', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                result.innerHTML = '<div class="alert alert-success">✅ ' + data.message + '</div>';
+            } else {
+                result.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+            }
+        })
+        .catch(err => {
+            result.innerHTML = '<div class="alert alert-error">❌ Error: ' + err + '</div>';
+        });
+}
+</script>
+{% endblock %}

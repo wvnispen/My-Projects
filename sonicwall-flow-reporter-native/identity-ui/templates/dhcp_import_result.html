@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}DHCP Import Result{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem; color: #1a5f7a;">DHCP Import Complete</h2>
+
+<div class="card">
+    {% if imported > 0 %}
+    <div class="alert alert-success">
+        ✅ Successfully imported <strong>{{ imported }}</strong> of {{ total_parsed }} DHCP static leases
+    </div>
+    {% else %}
+    <div class="alert alert-error">
+        ⚠️ No leases were imported. Check the file format and try again.
+    </div>
+    {% endif %}
+    
+    {% if errors %}
+    <div class="alert alert-error" style="margin-top: 1rem;">
+        ⚠️ {{ errors|length }} errors occurred during import:
+        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+            {% for error in errors[:10] %}
+            <li>{{ error }}</li>
+            {% endfor %}
+            {% if errors|length > 10 %}
+            <li>... and {{ errors|length - 10 }} more errors</li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <a href="/mappings" class="btn">📋 View Mappings</a>
+        <a href="/dhcp" class="btn btn-secondary">📥 Import More</a>
+    </div>
+</div>
+
+{% if imported > 0 %}
+<div class="card">
+    <h2>What's Next?</h2>
+    <ul style="margin-left: 1.5rem;">
+        <li style="margin-bottom: 0.5rem;">View your imported mappings in the <a href="/mappings?search=dhcp">Mappings</a> page</li>
+        <li style="margin-bottom: 0.5rem;">Traffic from these IPs will now show the hostname in Grafana reports</li>
+        <li style="margin-bottom: 0.5rem;">You can edit individual mappings to add department/location info</li>
+        <li style="margin-bottom: 0.5rem;">Re-import anytime to update - existing entries will be overwritten</li>
+    </ul>
+</div>
+{% endif %}
+{% endblock %}

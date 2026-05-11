@@ -1,0 +1,229 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["sonicwall-security"], "title": "Security Reports", "type": "dashboards" }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Summary",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "src_ip", "id": "1" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Active Internal IPs",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "decbytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Traffic",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "count", "id": "1" }], "query": "*", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Total Flows",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "dst_ip", "id": "1" }], "query": "NOT dst_ip:0.0.0.0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique Destinations",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "url_host", "id": "1" }], "query": "_exists_:url_host", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Unique URLs",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto" }, "id": "2" }], "metrics": [{ "type": "cardinality", "field": "rule_id", "id": "1" }], "query": "_exists_:rule_id", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Active Rules",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "panels": [],
+      "title": "Top 20 Users (by Internal IP)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Total Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] },
+          { "matcher": { "id": "byName", "options": "Download" }, "properties": [{ "id": "unit", "value": "decbytes" }] },
+          { "matcher": { "id": "byName", "options": "Upload" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Total Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "20", "order": "desc", "orderBy": "1", "min_doc_count": "1" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "sum", "field": "bytes_in", "id": "4" }, { "type": "sum", "field": "bytes_out", "id": "5" }, { "type": "count", "id": "2" }, { "type": "cardinality", "field": "dst_ip", "id": "6" }, { "type": "cardinality", "field": "dst_port", "id": "7" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0 AND _exists_:src_ip", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top 20 Internal Users by Traffic",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip": "Internal IP", "Sum bytes_total": "Total Bytes", "Sum bytes_in": "Download", "Sum bytes_out": "Upload", "Count": "Flows", "Unique count dst_ip": "Destinations", "Unique count dst_port": "Ports Used" } } }],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "panels": [],
+      "title": "Top 20 URLs Visited (by request count)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "description": "Note: URL data comes from HTTP inspection. Byte counts not available for URL records.",
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": []
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 19 },
+      "id": 20,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Requests" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "url_host", "type": "terms", "settings": { "size": "20", "order": "desc", "orderBy": "_count", "min_doc_count": "1" }, "id": "3" }], "metrics": [{ "type": "count", "id": "2" }], "query": "_exists_:url_host", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top 20 URLs/Hosts by Request Count",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "url_host": "URL/Hostname", "Count": "Requests" } } }],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "id": 103,
+      "panels": [],
+      "title": "Traffic Over Time (by User IP)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "bars", "fillOpacity": 80, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "normal" } },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 32 },
+      "id": 30,
+      "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1", "min_doc_count": "1" }, "id": "2" }, { "field": "@timestamp", "type": "date_histogram", "settings": { "interval": "auto", "min_doc_count": "0" }, "id": "3" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0 AND _exists_:src_ip AND bytes_total:>0", "refId": "A", "timeField": "@timestamp" }],
+      "title": "Top 10 Users - Traffic Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "id": 104,
+      "panels": [],
+      "title": "User → Destination Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "${datasource}" },
+      "description": "Shows which internal IPs communicated with which destinations (by traffic volume)",
+      "fieldConfig": {
+        "defaults": { "mappings": [] },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Bytes" }, "properties": [{ "id": "unit", "value": "decbytes" }] }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 43 },
+      "id": 40,
+      "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Bytes" }] },
+      "targets": [{ "datasource": { "type": "elasticsearch", "uid": "${datasource}" }, "bucketAggs": [{ "field": "src_ip", "type": "terms", "settings": { "size": "10", "order": "desc", "orderBy": "1", "min_doc_count": "1" }, "id": "3" }, { "field": "dst_ip", "type": "terms", "settings": { "size": "5", "order": "desc", "orderBy": "1" }, "id": "4" }], "metrics": [{ "type": "sum", "field": "bytes_total", "id": "1" }, { "type": "count", "id": "2" }], "query": "NOT src_ip:102.132.137.1 AND NOT src_ip:0.0.0.0 AND _exists_:src_ip AND _exists_:dst_ip", "refId": "A", "timeField": "@timestamp" }],
+      "title": "User → Top Destinations",
+      "transformations": [{ "id": "organize", "options": { "renameByName": { "src_ip": "Internal IP", "dst_ip": "Destination IP", "Sum bytes_total": "Bytes", "Count": "Flows" } } }],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["sonicwall", "sonicwall-security", "users"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Elasticsearch-Flows", "value": "Elasticsearch-Flows" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "elasticsearch",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "SonicWall - Users & Top Talkers",
+  "uid": "swfr-users",
+  "version": 1,
+  "weekStart": ""
+}

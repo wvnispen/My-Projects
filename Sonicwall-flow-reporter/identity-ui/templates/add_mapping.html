@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Add Mapping{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem; color: #1a5f7a;">Add Identity Mapping</h2>
+
+<div class="card">
+    <form method="post" action="/mappings/add">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ip_address">IP Address</label>
+                <input type="text" id="ip_address" name="ip_address" placeholder="e.g., 192.168.1.100">
+                <small style="color: #666;">Single IP address</small>
+            </div>
+            <div class="form-group">
+                <label for="subnet">Or Subnet (CIDR)</label>
+                <input type="text" id="subnet" name="subnet" placeholder="e.g., 192.168.1.0/24">
+                <small style="color: #666;">IP range in CIDR notation</small>
+            </div>
+        </div>
+        
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #eee;">
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="user_id">User ID *</label>
+                <input type="text" id="user_id" name="user_id" required placeholder="e.g., jsmith">
+            </div>
+            <div class="form-group">
+                <label for="user_name">User Name *</label>
+                <input type="text" id="user_name" name="user_name" required placeholder="e.g., John Smith">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="department">Department</label>
+                <input type="text" id="department" name="department" placeholder="e.g., Engineering">
+            </div>
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" placeholder="e.g., Johannesburg Office">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="2" placeholder="Optional notes about this mapping"></textarea>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="submit" class="btn">Save Mapping</button>
+            <a href="/mappings" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Tips</h2>
+    <ul style="margin-left: 1.5rem;">
+        <li>Use <strong>IP Address</strong> for single hosts (workstations, servers)</li>
+        <li>Use <strong>Subnet</strong> for ranges (VLANs, DHCP pools)</li>
+        <li>Subnet mappings match any IP within the range</li>
+        <li>Direct IP matches take priority over subnet matches</li>
+    </ul>
+</div>
+{% endblock %}
