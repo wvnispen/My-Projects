@@ -117,6 +117,13 @@ if [[ -d "$REPO_DIR/.git" ]]; then
     git -C "$REPO_DIR" fetch origin
     git -C "$REPO_DIR" reset --hard "origin/$REPO_BRANCH"
     success "Repo updated ($(git -C "$REPO_DIR" log -1 --format='%h %s'))"
+elif [[ -d "$REPO_DIR" && ! -d "$REPO_DIR/.git" ]]; then
+    # Directory exists but isn't a git repo — left over from a failed run
+    warn "$REPO_DIR exists but is not a git repo — removing and re-cloning..."
+    rm -rf "$REPO_DIR"
+    info "Cloning $REPO_URL → $REPO_DIR..."
+    git clone --branch "$REPO_BRANCH" "$REPO_URL" "$REPO_DIR"
+    success "Repo cloned"
 else
     info "Cloning $REPO_URL → $REPO_DIR..."
     git clone --branch "$REPO_BRANCH" "$REPO_URL" "$REPO_DIR"
