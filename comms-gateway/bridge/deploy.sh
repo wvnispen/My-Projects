@@ -52,6 +52,7 @@ if $UPDATE_ONLY; then
     [[ ! -d "$REPO_DIR/.git" ]] && die "Repo not found at $REPO_DIR — run deploy.sh without --update first"
 
     info "Pulling latest from $REPO_BRANCH..."
+    git config --global --add safe.directory "$REPO_DIR" 2>/dev/null || true
     git -C "$REPO_DIR" fetch origin
     git -C "$REPO_DIR" reset --hard "origin/$REPO_BRANCH"
     chown -R "$APP_USER:$APP_USER" "$REPO_DIR"
