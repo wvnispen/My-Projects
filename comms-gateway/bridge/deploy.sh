@@ -34,6 +34,9 @@ UPDATE_ONLY=false
 # ── Preflight ──────────────────────────────────────────────────────────────
 [[ $EUID -ne 0 ]] && die "Run as root: sudo bash deploy.sh"
 
+# Capture the user who invoked sudo — they become the admin user
+ADMIN_USER="${SUDO_USER:-}"
+
 echo -e "\n${BOLD}═══════════════════════════════════════════════${NC}"
 if $UPDATE_ONLY; then
   echo -e "${BOLD}  CommsGateway — Update${NC}"
@@ -111,6 +114,30 @@ else
     success "User '$APP_USER' created"
 fi
 
+# ── 3b. Admin user — docker group + passwordless sudo ──────────────────────
+if [[ -n "$ADMIN_USER" ]] && id "$ADMIN_USER" &>/dev/null; then
+    if ! groups "$ADMIN_USER" | grep -q docker; then
+        info "Adding '$ADMIN_USER' to docker group..."
+        usermod -aG docker "$ADMIN_USER"
+        success "'$ADMIN_USER' added to docker group (re-login or run 'newgrp docker' to activate)"
+    else
+        success "'$ADMIN_USER' already in docker group"
+    fi
+
+    SUDOERS_FILE="/etc/sudoers.d/${ADMIN_USER}"
+    if [[ ! -f "$SUDOERS_FILE" ]]; then
+        info "Granting passwordless sudo to '$ADMIN_USER'..."
+        echo "$ADMIN_USER ALL=(ALL) NOPASSWD:ALL" > "$SUDOERS_FILE"
+        chmod 440 "$SUDOERS_FILE"
+        success "Passwordless sudo granted to '$ADMIN_USER'"
+    else
+        success "Sudoers rule for '$ADMIN_USER' already exists"
+    fi
+else
+    warn "Could not detect admin user from \$SUDO_USER — docker group and sudoers not configured"
+    warn "Run manually: usermod -aG docker <user> && echo '<user> ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/<user>"
+fi
+
 # ── 4. Clone / update repo ─────────────────────────────────────────────────
 if [[ -d "$REPO_DIR/.git" ]]; then
     info "Repo already cloned — pulling latest..."
@@ -152,6 +179,8 @@ else
         -e "s|CHANGE_ME_API_KEY|$GENERATED_API_KEY|g" \
         -e "s|CHANGE_ME_WAHA_KEY|$GENERATED_WAHA_KEY|g" \
         "$APP_DIR/.env.example" > "$APP_DIR/.env"
+    # Strip any inline comments that pydantic-settings cannot handle
+    sed -i 's/[[:space:]]*#[^"]*$//' "$APP_DIR/.env"
     chmod 600 "$APP_DIR/.env"
     chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
     success ".env created with generated keys"
@@ -261,7 +290,6 @@ echo -e "  3. Scan WA ${BOLD}ssh -L 3000:127.0.0.1:3000 user@${VM_IP}${NC}"
 echo -e "             then open http://localhost:3000/dashboard"
 echo -e "  4. Test    ${BOLD}http://${VM_IP}/${NC}\n"
 echo -e "${YELLOW}Future updates:${NC}"
-echo -e "  ${BOLD}sudo bash $APP_DIR/../bridge/deploy.sh --update${NC}"
-echo -e "  or:  git push → ${BOLD}sudo bash /opt/commsgateway/bridge/deploy.sh --update${NC}\n"
+echo -e "  git push → ${BOLD}sudo bash ${APP_DIR}/deploy.sh --update${NC}\n"
 echo -e "  Logs: ${BOLD}tail -f ${APP_DIR}/logs/gateway.log${NC}"
 echo -e "  WAHA: ${BOLD}docker logs -f waha${NC}\n"
