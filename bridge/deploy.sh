@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # CommsGateway — Deployment Script
 # Targets: Ubuntu 24.04 LTS / Ubuntu 26.04 LTS (VM or bare metal)
-# Run as root: sudo bash deploy.sh
+#
+# First deploy:  sudo bash deploy.sh
+# Update only:   sudo bash deploy.sh --update
 
 set -euo pipefail
 
@@ -13,22 +15,61 @@ success() { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()     { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
-# ── Config ─────────────────────────────────────────────────────────────────
-APP_USER="commsgateway"
-APP_DIR="/opt/commsgateway"
+# ── Config — edit REPO_URL before running ──────────────────────────────────
+REPO_URL="https://github.com/wvnispen/CommsGateway.git"
+REPO_BRANCH="main"
+REPO_DIR="/opt/commsgateway"          # full git clone lives here
+APP_DIR="$REPO_DIR/bridge"            # uvicorn runs from here
 VENV_DIR="$APP_DIR/venv"
+APP_USER="commsgateway"
 SERVICE_NAME="commsgateway"
 WAHA_DIR="/opt/waha"
 WAHA_PORT="3000"
 APP_PORT="8080"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ── Flags ──────────────────────────────────────────────────────────────────
+UPDATE_ONLY=false
+[[ "${1:-}" == "--update" ]] && UPDATE_ONLY=true
 
 # ── Preflight ──────────────────────────────────────────────────────────────
 [[ $EUID -ne 0 ]] && die "Run as root: sudo bash deploy.sh"
 
 echo -e "\n${BOLD}═══════════════════════════════════════════════${NC}"
-echo -e "${BOLD}  CommsGateway — Deployment${NC}"
+if $UPDATE_ONLY; then
+  echo -e "${BOLD}  CommsGateway — Update${NC}"
+else
+  echo -e "${BOLD}  CommsGateway — First Deployment${NC}"
+fi
 echo -e "${BOLD}═══════════════════════════════════════════════${NC}\n"
+
+# ══════════════════════════════════════════════════════════════════════════
+# UPDATE PATH — git pull + pip sync + restart
+# ══════════════════════════════════════════════════════════════════════════
+if $UPDATE_ONLY; then
+    [[ ! -d "$REPO_DIR/.git" ]] && die "Repo not found at $REPO_DIR — run deploy.sh without --update first"
+
+    info "Pulling latest from $REPO_BRANCH..."
+    git -C "$REPO_DIR" fetch origin
+    git -C "$REPO_DIR" reset --hard "origin/$REPO_BRANCH"
+    chown -R "$APP_USER:$APP_USER" "$REPO_DIR"
+    success "Repo updated ($(git -C "$REPO_DIR" log -1 --format='%h %s'))"
+
+    info "Syncing Python dependencies..."
+    "$VENV_DIR/bin/pip" install --quiet -r "$APP_DIR/requirements.txt"
+    success "Dependencies synced"
+
+    info "Restarting service..."
+    systemctl restart "$SERVICE_NAME"
+    success "Service restarted"
+
+    echo -e "\n${GREEN}Update complete.${NC}"
+    echo -e "  Logs: ${BOLD}journalctl -u $SERVICE_NAME -f${NC}\n"
+    exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# FULL DEPLOYMENT
+# ══════════════════════════════════════════════════════════════════════════
 
 # ── 1. System packages ─────────────────────────────────────────────────────
 info "Updating package lists..."
@@ -40,7 +81,7 @@ apt-get install -y -qq \
     nginx curl git openssl \
     ca-certificates gnupg lsb-release
 
-success "System packages installed"
+success "System packages installed (git $(git --version | awk '{print $3}'))"
 
 # ── 2. Docker ──────────────────────────────────────────────────────────────
 if command -v docker &>/dev/null; then
@@ -65,27 +106,25 @@ if id "$APP_USER" &>/dev/null; then
     success "User '$APP_USER' already exists"
 else
     info "Creating user '$APP_USER'..."
-    useradd -r -s /bin/bash -d "$APP_DIR" -m "$APP_USER"
+    useradd -r -s /bin/bash -d "$REPO_DIR" -m "$APP_USER"
     usermod -aG docker "$APP_USER"
     success "User '$APP_USER' created"
 fi
 
-# ── 4. App directory ───────────────────────────────────────────────────────
-info "Setting up $APP_DIR..."
-mkdir -p "$APP_DIR"/{routers,channels,middleware,static,logs}
+# ── 4. Clone / update repo ─────────────────────────────────────────────────
+if [[ -d "$REPO_DIR/.git" ]]; then
+    info "Repo already cloned — pulling latest..."
+    git -C "$REPO_DIR" fetch origin
+    git -C "$REPO_DIR" reset --hard "origin/$REPO_BRANCH"
+    success "Repo updated ($(git -C "$REPO_DIR" log -1 --format='%h %s'))"
+else
+    info "Cloning $REPO_URL → $REPO_DIR..."
+    git clone --branch "$REPO_BRANCH" "$REPO_URL" "$REPO_DIR"
+    success "Repo cloned"
+fi
 
-# Copy application files from repo
-cp -r "$SCRIPT_DIR"/{main.py,config.py,requirements.txt} "$APP_DIR/"
-cp -r "$SCRIPT_DIR"/routers/*.py "$APP_DIR/routers/"
-cp -r "$SCRIPT_DIR"/channels/*.py "$APP_DIR/channels/"
-cp -r "$SCRIPT_DIR"/middleware/*.py "$APP_DIR/middleware/"
-cp -r "$SCRIPT_DIR"/static/* "$APP_DIR/static/"
-touch "$APP_DIR"/routers/__init__.py \
-      "$APP_DIR"/channels/__init__.py \
-      "$APP_DIR"/middleware/__init__.py
-
-chown -R "$APP_USER:$APP_USER" "$APP_DIR"
-success "Application files copied"
+mkdir -p "$APP_DIR/logs"
+chown -R "$APP_USER:$APP_USER" "$REPO_DIR"
 
 # ── 5. Python venv ─────────────────────────────────────────────────────────
 info "Creating Python virtual environment..."
@@ -105,7 +144,7 @@ else
     sed \
         -e "s|CHANGE_ME_API_KEY|$GENERATED_API_KEY|g" \
         -e "s|CHANGE_ME_WAHA_KEY|$GENERATED_WAHA_KEY|g" \
-        "$SCRIPT_DIR/.env.example" > "$APP_DIR/.env"
+        "$APP_DIR/.env.example" > "$APP_DIR/.env"
     chmod 600 "$APP_DIR/.env"
     chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
     success ".env created with generated keys"
@@ -115,7 +154,7 @@ else
 fi
 
 # ── 7. WAHA (WhatsApp bridge) ──────────────────────────────────────────────
-WAHA_KEY=$(grep WAHA_API_KEY "$APP_DIR/.env" | cut -d= -f2 | tr -d '"')
+WAHA_KEY=$(grep "^WAHA_API_KEY=" "$APP_DIR/.env" | cut -d= -f2 | tr -d '"')
 
 info "Deploying WAHA WhatsApp bridge..."
 mkdir -p "$WAHA_DIR/sessions"
@@ -163,21 +202,19 @@ systemctl enable "$SERVICE_NAME"
 systemctl restart "$SERVICE_NAME"
 success "systemd service installed and started"
 
-# ── 9. nginx ──────────────────────────────────────────────────────────────
+# ── 9. nginx ───────────────────────────────────────────────────────────────
 info "Configuring nginx reverse proxy..."
 cat > "/etc/nginx/sites-available/commsgateway" <<'EOF'
 server {
     listen 80;
     server_name _;
 
-    # Web UI — no auth (internal network only)
     location / {
         proxy_pass         http://127.0.0.1:8080;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
     }
 
-    # API — proxied through (auth is handled by the app)
     location /api/ {
         proxy_pass         http://127.0.0.1:8080;
         proxy_set_header   Host $host;
@@ -209,14 +246,15 @@ echo -e "${BOLD}${GREEN}══════════════════�
 echo -e "  Web UI:    ${BOLD}http://${VM_IP}/${NC}"
 echo -e "  API:       ${BOLD}http://${VM_IP}/api/v1/send${NC}"
 echo -e "  Status:    ${BOLD}http://${VM_IP}/api/v1/status${NC}"
-echo -e "  WAHA:      ${BOLD}http://127.0.0.1:${WAHA_PORT}/dashboard${NC}  (SSH tunnel to access)\n"
+echo -e "  WAHA:      ${BOLD}http://127.0.0.1:${WAHA_PORT}/dashboard${NC}  (SSH tunnel)\n"
 echo -e "${YELLOW}Next steps:${NC}"
-echo -e "  1. Edit ${BOLD}${APP_DIR}/.env${NC} — add Telegram token, ESP32 IP, WhatsApp number"
-echo -e "  2. Restart service: ${BOLD}systemctl restart ${SERVICE_NAME}${NC}"
-echo -e "  3. SSH tunnel for WAHA QR scan:"
-echo -e "     ${BOLD}ssh -L 3000:127.0.0.1:3000 user@${VM_IP}${NC}"
-echo -e "     Then open: http://localhost:3000/dashboard"
-echo -e "  4. Scan QR code with WhatsApp on the dedicated phone"
-echo -e "  5. Open the web UI and send a test message\n"
+echo -e "  1. Edit   ${BOLD}${APP_DIR}/.env${NC} — add Telegram token, ESP32 IP, WhatsApp number"
+echo -e "  2. Restart ${BOLD}systemctl restart ${SERVICE_NAME}${NC}"
+echo -e "  3. Scan WA ${BOLD}ssh -L 3000:127.0.0.1:3000 user@${VM_IP}${NC}"
+echo -e "             then open http://localhost:3000/dashboard"
+echo -e "  4. Test    ${BOLD}http://${VM_IP}/${NC}\n"
+echo -e "${YELLOW}Future updates:${NC}"
+echo -e "  ${BOLD}sudo bash $APP_DIR/../bridge/deploy.sh --update${NC}"
+echo -e "  or:  git push → ${BOLD}sudo bash /opt/commsgateway/bridge/deploy.sh --update${NC}\n"
 echo -e "  Logs: ${BOLD}tail -f ${APP_DIR}/logs/gateway.log${NC}"
-echo -e "  WAHA logs: ${BOLD}docker logs -f waha${NC}\n"
+echo -e "  WAHA: ${BOLD}docker logs -f waha${NC}\n"
